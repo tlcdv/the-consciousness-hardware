@@ -7,6 +7,8 @@ read it, change a parameter and build it again.
 License: [CERN-OHL-S v2](LICENSE). Attribution is required. If you share a changed design or
 sell a product made from it, you must publish your changed source under the same license.
 
+![Tang Nano 9K case, exploded CAD render](designs/tang-nano-9k-case/renders/exploded-branded.png)
+
 ## Designs
 
 | Design | For | State |
@@ -20,7 +22,10 @@ sell a product made from it, you must publish your changed source under the same
 | `store` | Part number and license name only | Print services |
 | `branded` | Circled-dot mark and the source URL | Print it yourself |
 
-The shape is the same. All parts share one shape language (`common/style.py`): the same edge
+The shape is the same. Renders use the project's colours: near black background, orange
+`#ff6f40`, cream, thin near white edge lines, and the main logo at the bottom right
+(`python render.py <design>`). Copies without the logo go to `renders/listing/` for print service
+listings. All parts share one shape language (`common/style.py`): the same edge
 radius and chamfer, and a row of vent slots whose lengths follow a Boltzmann distribution,
 exp(-E / T).
 

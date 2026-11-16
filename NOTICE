@@ -18,6 +18,10 @@ This source is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY, INCLUDING
 OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A PARTICULAR PURPOSE.
 Please see the CERN-OHL-S v2 for applicable conditions.
 
+Names and logos: the CERN-OHL-S v2 licenses the designs, not the names or
+logos of this project. The circled-dot mark and assets/logo-main.png may be
+reproduced only unchanged, to identify this project as the source.
+
 Third-party reference data:
 - Tang Nano 9K board outline, hole and header positions: Sipeed dimensional
   drawing Tang_Nano_9K_3672_size (2022-01-11), used as measurements only.

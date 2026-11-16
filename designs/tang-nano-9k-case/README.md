@@ -4,7 +4,22 @@ A two-part case for the Sipeed Tang Nano 9K FPGA board. It is the housing for th
 [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design (thermospike plan,
 step 3), and it works for any other Tang Nano 9K project.
 
-![Exploded view](renders/exploded-branded.png)
+![Exploded view of the Tang Nano 9K case](renders/exploded-branded.png)
+
+## Images
+
+CAD renders, not photos. The dark block is a simplified board model used for the fit check.
+
+| | |
+|---|---|
+| ![Lid, store variant](renders/lid-store.png) | ![Lid, branded variant](renders/lid-branded.png) |
+| Lid, store variant | Lid, branded variant with the circled-dot mark |
+| ![Exploded view, store variant](renders/exploded-store.png) | ![Base with the board model](renders/base-with-board.png) |
+| Exploded view, store variant | Base with the simplified board model |
+| ![Base from below, store variant](renders/base-bottom-store.png) | ![Base from below, branded variant](renders/base-bottom-branded.png) |
+| Base from below, store variant | Base from below, branded variant |
+
+Copies without the logo, for print service listings, are in [`renders/listing/`](renders/listing/).
 
 ## Test state
 

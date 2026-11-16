@@ -23,10 +23,14 @@ BOARD_CLEARANCE = 0.4
 # Engraving depth for text and marks.
 ENGRAVE_DEPTH = 0.6
 
-# Recommended material colours. The brand tokens of the project.
+# Brand tokens for renders and recommended material colours. The same values
+# as the project's films and banners: near black background, near white, and
+# the orange used for 3D and video (never the lighter web orange in renders).
 COLOURS = {
+    "background": "#050506",
+    "near_white": "#f5f5f2",
     "cream": "#f3ead8",
-    "coral": "#f58c6e",
+    "coral": "#ff6f40",
 }
 
 

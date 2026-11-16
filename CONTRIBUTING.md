@@ -8,10 +8,13 @@
 3. Each design builds two variants: `store` (part number and license name only) and `branded`.
 4. Board measurements come from the manufacturer's drawing. Name the drawing in the code.
    Mark every other measurement as an estimate.
-5. `python build.py` must print "all checks passed" before a pull request.
-6. The test table says only what was really done. "Printed" and "Fit tested" need a photo in the
+5. Run `python render.py <design>` and commit the renders. Every design README shows all renders
+   in an "Images" table. Renders use the house look in `render.py` (near black background,
+   orange `#ff6f40`, cream, near white edge lines, main logo at the bottom right).
+6. `python build.py` must print "all checks passed" before a pull request.
+7. The test table says only what was really done. "Printed" and "Fit tested" need a photo in the
    pull request.
-7. Brain-signal designs are for recording only. No stimulation parts. No medical claims.
+8. Brain-signal designs are for recording only. No stimulation parts. No medical claims.
 
 ## Pull requests
 
