@@ -1,0 +1,24 @@
+the-consciousness-hardware
+Copyright (c) 2026 the-consciousness-hardware contributors, as listed in the git history.
+
+Licensed under the CERN Open Hardware Licence Version 2 - Strongly Reciprocal
+(CERN-OHL-S-2.0). See LICENSE.
+
+Source Location: https://github.com/tlcdv/the-consciousness-hardware
+
+Source Location notice (CERN-OHL-S-2.0, section 4): a Product made from this
+source must show the Source Location above on the Product, on its packaging,
+or in its documentation. A product listing page that links to the Source
+Location counts as documentation.
+
+You may redistribute and modify this source and make products using it under
+the terms of the CERN-OHL-S v2 (https://ohwr.org/cern_ohl_s_v2.txt).
+
+This source is distributed WITHOUT ANY EXPRESS OR IMPLIED WARRANTY, INCLUDING
+OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A PARTICULAR PURPOSE.
+Please see the CERN-OHL-S v2 for applicable conditions.
+
+Third-party reference data:
+- Tang Nano 9K board outline, hole and header positions: Sipeed dimensional
+  drawing Tang_Nano_9K_3672_size (2022-01-11), used as measurements only.
+  Tang Nano is a name of Sipeed. This project is not made or endorsed by Sipeed.
