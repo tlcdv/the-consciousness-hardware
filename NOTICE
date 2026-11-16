@@ -19,8 +19,15 @@ OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A PARTICULAR PURPOSE.
 Please see the CERN-OHL-S v2 for applicable conditions.
 
 Names and logos: the CERN-OHL-S v2 licenses the designs, not the names or
-logos of this project. The circled-dot mark and assets/logo-main.png may be
-reproduced only unchanged, to identify this project as the source.
+logos of this project. No permission is given to use them on any Product.
+- A Product made for sale, or offered by a print service, must use the
+  `store` variant, or carry no name, logo or other mark of this project.
+- The `branded` variant (with the project mark) is for personal prints only.
+  This project itself never lists it on a print service.
+- The name and assets/logo-main.png may be reproduced unchanged in
+  documentation and listings only to state where the source comes from
+  (the Source Location notice above). They must not suggest that this
+  project made, sells or checked a Product.
 
 Third-party reference data:
 - Tang Nano 9K board outline, hole and header positions: Sipeed dimensional

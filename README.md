@@ -17,10 +17,13 @@ sell a product made from it, you must publish your changed source under the same
 
 ## Two variants of each part
 
+If you sell prints of these designs, use the `store` variant. No name or mark of this project
+may appear on a part that is sold. See [NOTICE](NOTICE).
+
 | Variant | Marks on the part | Use |
 |---|---|---|
 | `store` | Part number and license name only | Print services |
-| `branded` | Circled-dot mark and the source URL | Print it yourself |
+| `branded` | Project mark and the source URL | Personal prints only. Never sold, never listed on a print service |
 
 The shape is the same. Renders use the project's colours: near black background, orange
 `#ff6f40`, cream, thin near white edge lines, and the main logo at the bottom right
