@@ -82,17 +82,47 @@ def boltzmann_vents(count=11, pitch=2.6, slot_width=1.4, max_length=16.0,
     return cutter
 
 
-def circled_dot(outer_diameter=12.0, ring_width=1.2, dot_diameter=3.6,
-                depth=ENGRAVE_DEPTH):
-    """A cutting solid for the circled-dot project mark (branded variants only).
+# Thinnest engraved line a nylon print service (MJF, SLS) keeps.
+MIN_LINE = 0.6
+
+
+def _ring(r_out, width, depth):
+    return (cq.Workplane("XY").circle(r_out).circle(r_out - width)
+            .extrude(depth))
+
+
+def compass_mark(diameter=13.0, depth=ENGRAVE_DEPTH):
+    """A cutting solid for the project mark (branded variants only).
+
+    A simplified engraving of the main logo, the compass dial in
+    assets/logo-main.png: outer rim, second ring, eight point star, hub ring,
+    centre dot and a shallow sweep sector from 0 to 60 degrees. The degree
+    numbers and the fine ticks are left out because they are thinner than
+    MIN_LINE at this size. Never put this mark on a `store` variant (NOTICE).
 
     Centred on the origin, from z = 0 to z = depth.
     """
-    ring = (
-        cq.Workplane("XY")
-        .circle(outer_diameter / 2)
-        .circle(outer_diameter / 2 - ring_width)
-        .extrude(depth)
-    )
-    dot = cq.Workplane("XY").circle(dot_diameter / 2).extrude(depth)
-    return ring.union(dot)
+    r = diameter / 2
+    cut = _ring(r, 0.8, depth)
+    cut = cut.union(_ring(r - 1.6, MIN_LINE, depth))
+    cut = cut.union(_ring(2.0, MIN_LINE, depth))
+    cut = cut.union(cq.Workplane("XY").circle(0.6).extrude(depth))
+    for i in range(8):
+        angle = math.radians(90 - i * 45)
+        length = (r - 1.8) if i % 2 == 0 else (r - 3.2)
+        half = 0.55 if i % 2 == 0 else 0.45
+        tip = (length * math.cos(angle), length * math.sin(angle))
+        bx, by = 2.0 * math.cos(angle), 2.0 * math.sin(angle)
+        px, py = -math.sin(angle) * half, math.cos(angle) * half
+        kite = (cq.Workplane("XY")
+                .polyline([(bx + px, by + py), tip, (bx - px, by - py)])
+                .close().extrude(depth))
+        cut = cut.union(kite)
+    points = [(0, 0)]
+    for k in range(13):
+        angle = math.radians(90 - k * 5)
+        points.append(((r - 1.6) * math.cos(angle),
+                       (r - 1.6) * math.sin(angle)))
+    sweep = (cq.Workplane("XY").polyline(points).close()
+             .extrude(depth / 2).translate((0, 0, depth / 2)))
+    return cut.union(sweep)

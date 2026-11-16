@@ -121,6 +121,11 @@ def main(name):
              os.path.join(out, f"base-bottom-{variant}.png"), below)
     draw([(mesh(module.build_base("store")), CREAM), (board, BOARD, 0.9)],
          os.path.join(out, "base-with-board.png"), above)
+    mark_view = getattr(module, "MARK_VIEW", None)
+    if mark_view:
+        draw([(mesh(module.build_lid("branded")), CORAL)],
+             os.path.join(out, "mark-closeup-branded.png"), mark_view,
+             zoom=1.0)
 
 
 if __name__ == "__main__":

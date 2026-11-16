@@ -5,7 +5,8 @@ into the base. The split line is the top face of the PCB.
 
 Variants:
   store     no name, no logo, no brand text. For print services.
-  branded   circled-dot mark on the lid and the source URL under the base.
+  branded   compass mark on the lid and the source URL under the base.
+            Personal prints only, never sold (see NOTICE).
 
 All dimensions in millimetres. Board coordinates: see board.py.
 """
@@ -25,6 +26,8 @@ from common import style  # noqa: E402
 DESIGN_ID = "TN9K-CASE"
 VERSION = "0.1"
 SOURCE_URL = "github.com/tlcdv/the-consciousness-hardware"
+# Camera for the close-up render of the compass mark (render.py).
+MARK_VIEW = [(-45, -40, 70), (-25, 0, 11), (0, 0, 1)]
 
 WALL = style.WALL
 CLEARANCE = style.BOARD_CLEARANCE
@@ -239,8 +242,7 @@ def build_lid(variant="store"):
     lid = lid.cut(_end_openings())
 
     if variant == "branded":
-        mark = style.circled_dot(outer_diameter=10.0, ring_width=1.0,
-                                 dot_diameter=3.0)
+        mark = style.compass_mark(diameter=13.0)
         lid = lid.cut(mark.translate((-25.0, 0,
                                       Z_TOP - style.ENGRAVE_DEPTH)))
     return lid

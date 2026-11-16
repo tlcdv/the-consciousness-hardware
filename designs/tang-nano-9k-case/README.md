@@ -13,11 +13,13 @@ CAD renders, not photos. The dark block is a simplified board model used for the
 | | |
 |---|---|
 | ![Lid, store variant](renders/lid-store.png) | ![Lid, branded variant](renders/lid-branded.png) |
-| Lid, store variant | Lid, branded variant with the circled-dot mark |
+| Lid, store variant | Lid, branded variant with the compass mark |
 | ![Exploded view, store variant](renders/exploded-store.png) | ![Base with the board model](renders/base-with-board.png) |
 | Exploded view, store variant | Base with the simplified board model |
 | ![Base from below, store variant](renders/base-bottom-store.png) | ![Base from below, branded variant](renders/base-bottom-branded.png) |
 | Base from below, store variant | Base from below, branded variant |
+| ![Compass mark, close-up](renders/mark-closeup-branded.png) | |
+| Compass mark on the branded lid, 13 mm, 0.6 mm deep. Personal prints only | |
 
 Copies without the logo, for print service listings, are in [`renders/listing/`](renders/listing/).
 
