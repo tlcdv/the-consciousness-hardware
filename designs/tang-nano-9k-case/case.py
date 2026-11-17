@@ -24,8 +24,8 @@ import board as b  # noqa: E402
 from common import style  # noqa: E402
 
 DESIGN_ID = "TN9K-CASE"
-VERSION = "0.1"
-SOURCE_URL = "github.com/tlcdv/the-consciousness-hardware"
+VERSION = "0.1.1"
+SOURCE_URL = "github.com/tlcdv/the-hardware"
 # Camera for the close-up render of the compass mark (render.py).
 MARK_VIEW = [(-45, -40, 70), (-25, 0, 11), (0, 0, 1)]
 
@@ -108,18 +108,16 @@ def _end_openings():
 
 def _engrave_bottom(part, lines, size):
     """Cut text lines into the bottom face, readable from below."""
+    # One workplane for every line, taken before any cut. A new workplane per line
+    # follows the bounding box of the already cut face and moves the lines (v0.1 bug).
     wp = part.faces("<Z").workplane(centerOption="CenterOfBoundBox")
     step = size * 1.6
     y0 = step * (len(lines) - 1) / 2
     for i, line in enumerate(lines):
-        part = (
-            part.faces("<Z")
-            .workplane(centerOption="CenterOfBoundBox")
-            .center(0, y0 - i * step)
-            .text(line, size, -style.ENGRAVE_DEPTH, combine="cut",
-                  halign="center", valign="center")
-        )
-    del wp
+        text = wp.center(0, y0 - i * step).text(
+            line, size, -style.ENGRAVE_DEPTH, combine=False,
+            halign="center", valign="center")
+        part = part.cut(text)
     return part
 
 

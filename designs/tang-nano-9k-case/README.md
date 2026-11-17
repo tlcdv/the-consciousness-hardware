@@ -1,4 +1,4 @@
-# Tang Nano 9K case (TN9K-CASE) v0.1
+# Tang Nano 9K case (TN9K-CASE) v0.1.1
 
 A two-part case for the Sipeed Tang Nano 9K FPGA board. It is the housing for the
 [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design (thermospike plan,
@@ -79,3 +79,10 @@ All sizes are at the top of `case.py` (case) and `board.py` (board). Change one,
 2. Put the lid on. The posts in the lid sit on the board around the holes.
 3. Put in two M2 x 14 screws from the top. Tighten by hand only. The base holes are pilot holes
    for self-tapping into plastic.
+
+## Changes
+
+| Version | Date | Change |
+|---|---|---|
+| v0.1.1 | 2026-11-17 | The branded base carries the new source address github.com/tlcdv/the-hardware. The engraved lines under the base no longer overlap. In v0.1 the first two lines were cut on top of each other. No change to the shape or the fit. |
+| v0.1 | 2026-11-16 | First release. |

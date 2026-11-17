@@ -21,7 +21,7 @@ Every hardware film is linked here and in the README of its design.
 
 | Design | For | State |
 |---|---|---|
-| [tang-nano-9k-case](designs/tang-nano-9k-case/) | Sipeed Tang Nano 9K FPGA board, used by the [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design | v0.1. Fit checked in CAD only. **Not printed yet.** |
+| [tang-nano-9k-case](designs/tang-nano-9k-case/) | Sipeed Tang Nano 9K FPGA board, used by the [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design | v0.1.1. Fit checked in CAD only. **Not printed yet.** |
 
 ## Two variants of each part
 
