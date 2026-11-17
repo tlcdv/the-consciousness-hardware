@@ -1,4 +1,4 @@
-# the-consciousness-hardware
+# the-hardware
 
 Open, 3D-printable parts for thermodynamic computing, neuromorphic engineering, brain-signal
 recording and small-satellite education. Every part is generated from code (CadQuery), so you can
@@ -8,6 +8,14 @@ License: [CERN-OHL-S v2](LICENSE). Attribution is required. If you share a chang
 sell a product made from it, you must publish your changed source under the same license.
 
 ![Tang Nano 9K case, exploded CAD render](designs/tang-nano-9k-case/renders/exploded-branded.png)
+
+## Films
+
+Every hardware film is linked here and in the README of its design.
+
+| Film | Design |
+|---|---|
+| [![A box for a computer that runs on noise, film on YouTube](https://img.youtube.com/vi/6x5qe1VAy_4/mqdefault.jpg)](https://youtu.be/6x5qe1VAy_4)<br>[A box for a computer that runs on noise](https://youtu.be/6x5qe1VAy_4) (1:56) | [tang-nano-9k-case](designs/tang-nano-9k-case/) |
 
 ## Designs
 
@@ -46,7 +54,7 @@ python render.py tang-nano-9k-case
 The fit checks fail when a part is not one valid solid, when two parts of a case overlap, or when a
 case overlaps the simplified board model.
 
-Ready STL and STEP files are attached to each [release](https://github.com/tlcdv/the-consciousness-hardware/releases).
+Ready STL and STEP files are attached to each [release](https://github.com/tlcdv/the-hardware/releases).
 
 ## Honest test state
 
@@ -57,7 +65,7 @@ manufacturer's drawing are marked as estimates.
 ## Source location
 
 The source of every design is this repository:
-https://github.com/tlcdv/the-consciousness-hardware. See [NOTICE](NOTICE).
+https://github.com/tlcdv/the-hardware. See [NOTICE](NOTICE).
 
 ## Contributing
 

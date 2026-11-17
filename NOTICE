@@ -1,10 +1,12 @@
-the-consciousness-hardware
-Copyright (c) 2026 the-consciousness-hardware contributors, as listed in the git history.
+the-hardware
+Copyright (c) 2026 the-hardware contributors, as listed in the git history.
 
 Licensed under the CERN Open Hardware Licence Version 2 - Strongly Reciprocal
 (CERN-OHL-S-2.0). See LICENSE.
 
-Source Location: https://github.com/tlcdv/the-consciousness-hardware
+Source Location: https://github.com/tlcdv/the-hardware
+(Renamed from https://github.com/tlcdv/the-consciousness-hardware on 2026-11-17.
+The old address redirects here and stays valid on prints made before that date.)
 
 Source Location notice (CERN-OHL-S-2.0, section 4): a Product made from this
 source must show the Source Location above on the Product, on its packaging,

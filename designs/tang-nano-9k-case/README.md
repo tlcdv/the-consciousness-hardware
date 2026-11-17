@@ -2,9 +2,15 @@
 
 A two-part case for the Sipeed Tang Nano 9K FPGA board. It is the housing for the
 [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design (thermospike plan,
-step 3), and it works for any other Tang Nano 9K project.
+step 3). Any other Tang Nano 9K project can use it too.
 
 ![Exploded view of the Tang Nano 9K case](renders/exploded-branded.png)
+
+## Film
+
+[![A box for a computer that runs on noise, film on YouTube](https://img.youtube.com/vi/6x5qe1VAy_4/maxresdefault.jpg)](https://youtu.be/6x5qe1VAy_4)
+
+[A box for a computer that runs on noise](https://youtu.be/6x5qe1VAy_4) (1:56, YouTube) shows how the case is built from code, the Boltzmann curve in its vent slots, and the p-bit sampler it is planned for. The shots are renders. The case is not printed yet.
 
 ## Images
 
