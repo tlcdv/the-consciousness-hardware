@@ -5,7 +5,8 @@ Usage:
     python build.py --check    check only, write no files
 
 A check fails when a part is not one valid solid, when two parts of a case
-overlap, or when a case overlaps the board proxy.
+overlap, or when a case overlaps the board proxy. A design that defines
+fit_checks() runs its own checks instead of the case checks.
 """
 
 import argparse
@@ -20,8 +21,17 @@ DESIGNS = os.path.join(ROOT, "designs")
 OVERLAP_LIMIT_MM3 = 0.01
 
 
+def design_file(name):
+    """designs/<name>/design.py, or case.py for the older designs."""
+    for file in ("design.py", "case.py"):
+        path = os.path.join(DESIGNS, name, file)
+        if os.path.exists(path):
+            return path
+    return None
+
+
 def load_design(name):
-    path = os.path.join(DESIGNS, name, "case.py")
+    path = design_file(name)
     spec = importlib.util.spec_from_file_location(f"design_{name}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -51,6 +61,14 @@ def check(name, module, parts):
             shapes[key] = solid_of(part)
         except ValueError as error:
             failures.append(f"{name}/{key}: {error}")
+    if hasattr(module, "fit_checks"):
+        def report(label, ok, text):
+            print(f"  {label:34s} {text:28s} {'ok' if ok else 'FAIL'}")
+            if not ok:
+                failures.append(f"{name}: {label} {text}")
+        module.fit_checks(shapes, overlap, report)
+        print_sizes(shapes)
+        return failures
     proxy = module.build_board_proxy().val()
     for variant in ("store", "branded"):
         base, lid = shapes.get(f"base-{variant}"), shapes.get(f"lid-{variant}")
@@ -64,11 +82,15 @@ def check(name, module, parts):
             print(f"  {variant:8s} {label:11s} overlap {volume:8.3f} mm3  {status}")
             if status == "FAIL":
                 failures.append(f"{name}/{variant}: {label} overlap {volume:.3f} mm3")
+    print_sizes(shapes)
+    return failures
+
+
+def print_sizes(shapes):
     for key, shape in shapes.items():
         bb = shape.BoundingBox()
-        print(f"  {key:15s} {bb.xlen:6.2f} x {bb.ylen:6.2f} x {bb.zlen:6.2f} mm"
+        print(f"  {key:17s} {bb.xlen:6.2f} x {bb.ylen:6.2f} x {bb.zlen:6.2f} mm"
               f"  volume {shape.Volume() / 1000:6.2f} cm3")
-    return failures
 
 
 def export(name, parts):
@@ -87,7 +109,7 @@ def main():
     args = parser.parse_args()
     failures = []
     for name in sorted(os.listdir(DESIGNS)):
-        if not os.path.exists(os.path.join(DESIGNS, name, "case.py")):
+        if design_file(name) is None:
             continue
         print(name)
         module = load_design(name)

@@ -22,6 +22,7 @@ Every hardware film is linked here and in the README of its design.
 | Design | For | State |
 |---|---|---|
 | [tang-nano-9k-case](designs/tang-nano-9k-case/) | Sipeed Tang Nano 9K FPGA board, used by the [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design | v0.1.1. Fit checked in CAD only. **Not printed yet.** |
+| [eeg-headset-frame](designs/eeg-headset-frame/) | 16-channel EEG headset frame, sizes S, M, L, for the OpenBCI Cyton board with the Daisy module and any 10 mm electrode. Recording only | v0.1.0. Checked in CAD only. **Not printed yet.** |
 
 ## Two variants of each part
 
@@ -49,6 +50,7 @@ python -m venv .venv
 python build.py           # STL and STEP into designs/<name>/files/, plus fit checks
 python build.py --check   # fit checks only
 python render.py tang-nano-9k-case
+python render.py eeg-headset-frame
 ```
 
 The fit checks fail when a part is not one valid solid, when two parts of a case overlap, or when a

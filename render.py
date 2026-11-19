@@ -12,6 +12,7 @@ Each render is written twice:
                               (no brand mark on what a print service sells)
 
 Usage: python render.py tang-nano-9k-case
+       python render.py eeg-headset-frame
 Writes designs/<name>/renders/*.png. These are renders of the CAD model,
 not photos of a print.
 """
@@ -39,7 +40,10 @@ LOGO_MARGIN = 0.035        # share of the image height
 
 
 def load(name):
-    path = os.path.join(ROOT, "designs", name, "case.py")
+    folder = os.path.join(ROOT, "designs", name)
+    path = os.path.join(folder, "design.py")
+    if not os.path.exists(path):
+        path = os.path.join(folder, "case.py")
     spec = importlib.util.spec_from_file_location(f"design_{name}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -54,7 +58,28 @@ def mesh(part, offset=(0, 0, 0)):
         feature_angle=25, split_vertices=True, auto_orient_normals=True)
 
 
+HEAD = "#2a2d33"           # head model, dark and part transparent
+PINK = "#ff6b61"           # film accent (red coral), EEG frame and covers
+GLASS = "glass"            # clear part: light tint, bright pink-white edges
+
+
 def add_part(plotter, surface, colour, line_opacity=0.55):
+    if colour == GLASS:
+        plotter.add_mesh(surface, color="#eef1f4", smooth_shading=True,
+                         opacity=0.22, ambient=0.3, diffuse=0.5,
+                         specular=1.0, specular_power=80)
+        edges = surface.extract_feature_edges(feature_angle=35,
+                                              boundary_edges=True,
+                                              non_manifold_edges=False,
+                                              manifold_edges=False)
+        plotter.add_mesh(edges, color="#ffd6d3", line_width=1.8,
+                         opacity=0.85)
+        return
+    if colour == HEAD:
+        plotter.add_mesh(surface, color=HEAD, smooth_shading=True,
+                         opacity=0.45, ambient=0.25, diffuse=0.6,
+                         specular=0.6, specular_power=40)
+        return
     plotter.add_mesh(surface, color=colour, smooth_shading=True,
                      ambient=0.18, diffuse=0.8, specular=0.35,
                      specular_power=30)
@@ -101,10 +126,27 @@ def add_logo(source, target):
     image.convert("RGB").save(target, optimize=True)
 
 
+COLOUR_KEYS = {"coral": CORAL, "cream": CREAM, "board": BOARD, "head": HEAD,
+               "pink": PINK, "glass": GLASS}
+
+
+def render_design_views(module, out):
+    """Designs with render_views() list their own views."""
+    for file, items, camera, zoom in module.render_views():
+        parts = []
+        for part, key, *rest in items:
+            parts.append((mesh(part), COLOUR_KEYS[key], *rest))
+        draw(parts, os.path.join(out, file), camera, zoom=zoom)
+        print("wrote", file)
+
+
 def main(name):
     module = load(name)
     out = os.path.join(ROOT, "designs", name, "renders")
     os.makedirs(out, exist_ok=True)
+    if hasattr(module, "render_views"):
+        render_design_views(module, out)
+        return
     above = [(-90, -120, 110), (0, 0, 2), (0, 0, 1)]
     below = [(-90, -120, -110), (0, 0, 0), (0, 0, 1)]
     exploded = [(-110, -140, 120), (0, 0, 8), (0, 0, 1)]
