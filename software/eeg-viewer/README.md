@@ -54,8 +54,11 @@ Then open http://localhost:8000/ in Chrome or Edge.
 | Check | State |
 |---|---|
 | Demo with open EEG | Checked. Alpha share at O1 and O2 is 15 % with the eyes open and 63 to 65 % with the eyes closed |
-| Cyton + Daisy parser | Checked with simulated packets: a 40 uV sine reads 28.3 uV RMS, channels 1 to 16 in the right order |
-| Muse decoder | Checked with simulated notifications: a 30 uV sine reads 21.2 uV RMS, commands h, p21, s, d sent |
+| Muse decoder | Same values as the muse-js test vectors (`muse-parse.spec.ts`, `muse-utils.spec.ts`) |
+| Cyton decoder | Same values, to 1e-9 uV, as the official OpenBCI parser (`@openbci/utilities`) on 806 packets, including `samplePacketReal`, a packet recorded from a real board |
+| Cyton + Daisy pairing | Same 16 channel frames as the OpenBCI merge (`makeDaisySampleObject`), on a stream cut in random pieces with junk bytes; an unpaired packet is dropped |
+| 8 or 16 channels | Read from the reply to the `C` command, as in the Cyton SDK documentation |
+| Whole page with simulated devices | A 40 uV sine on the Cyton reads 28.3 uV RMS, a 30 uV sine on the Muse 21.2 uV RMS |
 | Real Muse | Not checked yet |
 | Real Cyton | Not checked yet |
 | Muse S Athena and newer models | Not supported. They may use another protocol |
@@ -63,10 +66,22 @@ Then open http://localhost:8000/ in Chrome or Edge.
 
 Not a medical device. For learning and home experiments only.
 
+## Tests
+
+The decoders are checked against the reference data of the two libraries that define the
+protocols. 23 checks. Each one fails when the matching part of the decoder is broken on purpose.
+
+```
+cd software/eeg-viewer
+npm install --no-save @openbci/utilities@1
+node test/codec-test.js
+```
+
 ## Sources
 
 - Muse protocol as implemented in [muse-js](https://github.com/urish/muse-js) by Uri Shaked, MIT.
-- Cyton data format: https://docs.openbci.com/Cyton/CytonDataFormat/
+- Cyton data format: https://docs.openbci.com/Cyton/CytonDataFormat/ and commands: https://docs.openbci.com/Cyton/CytonSDK/
+- Reference parser and test data: [OpenBCI_NodeJS_Utilities](https://github.com/OpenBCI/OpenBCI_NodeJS_Utilities) (`@openbci/utilities`, MIT). Daisy pairing as in [OpenBCI_NodeJS_Cyton](https://github.com/OpenBCI/OpenBCI_NodeJS_Cyton).
 - Demo data: Schalk et al. (2004), BCI2000, IEEE Trans Biomed Eng 51(6). PhysioNet EEG Motor
   Movement/Imagery Dataset v1.0.0, subject S001, runs 1 and 2, doi 10.13026/C28G6P, ODC-By 1.0.
   `make_demo_data.py` rebuilds `data/` from the two EDF files.

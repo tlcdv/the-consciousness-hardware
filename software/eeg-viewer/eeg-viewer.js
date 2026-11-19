@@ -10,10 +10,79 @@
    - Cyton: Web Serial, 115200 baud. Packet 33 bytes, 0xA0 header, 8 channels of 24 bit signed
      big endian, footer 0xCX. uV per count = 4.5 / 24 / (2^23 - 1) * 1e6 (gain 24).
      With the Daisy, odd sample numbers carry channels 1 to 8 and even ones 9 to 16, so each
-     channel arrives at 125 Hz. Source: docs.openbci.com/Cyton/CytonDataFormat/. Commands v, b, s.
+     channel arrives at 125 Hz. Source: docs.openbci.com/Cyton/CytonDataFormat/. Commands s, v, C, b.
+     The reply to C tells 8 from 16 channels (docs.openbci.com/Cyton/CytonSDK/).
+   The decoders are checked against the test vectors of muse-js and OpenBCI_NodeJS_Utilities,
+   see test/codec-test.js in the source folder.
 */
+// ---------- decoders, kept apart from the page so they can be tested against reference data ----------
+var EEGVCodec = (function () {
+  "use strict";
+  var MUSE_UV = 0.48828125;                                  // muse-js decodeEEGSamples
+  var CYTON_UV = 4.5 / 24 / (Math.pow(2, 23) - 1) * 1e6;     // OpenBCI scale factor, gain 24
+  // Muse control command: length byte, ASCII command, newline (muse-js encodeCommand)
+  function museCmd(s) {
+    var e = new Uint8Array(s.length + 2); e[0] = s.length + 1;
+    for (var i = 0; i < s.length; i++) e[i + 1] = s.charCodeAt(i);
+    e[s.length + 1] = 10; return e;
+  }
+  // 12 bit unsigned samples, packed two in three bytes (muse-js decodeUnsigned12BitData)
+  function muse12(b) {
+    var out = [];
+    for (var i = 0; i < b.length; i++) {
+      if (i % 3 === 0) out.push((b[i] << 4) | (b[i + 1] >> 4));
+      else { out.push(((b[i] & 0xf) << 8) | b[i + 1]); i++; }
+    }
+    return out;
+  }
+  // one EEG notification: 2 byte sequence number, then 18 bytes of 12 samples, to microvolts
+  function museDecode(bytes) {
+    return muse12(bytes.subarray(2)).map(function (n) { return MUSE_UV * (n - 0x800); });
+  }
+  // 24 bit two's complement, most significant byte first (OpenBCI interpret24bitAsInt32)
+  function int24(b, o) {
+    var v = (b[o] << 16) | (b[o + 1] << 8) | b[o + 2];
+    return (v & 0x800000) ? v - 0x1000000 : v;
+  }
+  // Cyton stream parser. With the Daisy, an odd sample number holds channels 1 to 8 and the next
+  // even one channels 9 to 16, as in OpenBCI _finalizeNewSampleForDaisy. An unpaired packet is
+  // dropped and counted.
+  function cytonParser(daisy) {
+    var buf = new Uint8Array(0), pend = null, st = { packets: 0, missed: 0, skippedBytes: 0 };
+    function feed(chunk) {
+      var nb = new Uint8Array(buf.length + chunk.length); nb.set(buf); nb.set(chunk, buf.length); buf = nb;
+      var frames = [], i = 0;
+      while (i + 33 <= buf.length) {
+        if (buf[i] !== 0xa0 || (buf[i + 32] & 0xf0) !== 0xc0) { i++; st.skippedBytes++; continue; }
+        var sn = buf[i + 1], ch = new Array(8);
+        for (var k = 0; k < 8; k++) ch[k] = int24(buf, i + 2 + k * 3) * CYTON_UV;
+        st.packets++;
+        if (!daisy) frames.push(ch);
+        else if (sn % 2 === 1) { if (pend) st.missed++; pend = ch; }
+        else if (pend) { frames.push(pend.concat(ch)); pend = null; }
+        else st.missed++;
+        i += 33;
+      }
+      buf = buf.slice(i);
+      return frames;
+    }
+    return { feed: feed, stats: st };
+  }
+  // reply to the C command (Cyton SDK): "16$$$" or "daisy attached16$$$" means 16 channels,
+  // "no daisy to attach!8$$$" means 8. null when the reply is not there yet.
+  function daisyFromReply(t) {
+    if (/no daisy to attach/i.test(t) || /(^|[^0-9])8\$\$\$/.test(t)) return false;
+    if (/16\$\$\$/.test(t)) return true;
+    return null;
+  }
+  return { MUSE_UV: MUSE_UV, CYTON_UV: CYTON_UV, museCmd: museCmd, muse12: muse12, museDecode: museDecode,
+    int24: int24, cytonParser: cytonParser, daisyFromReply: daisyFromReply };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
+
 (function () {
   "use strict";
+  if (typeof document === "undefined") return;
   var root = document.getElementById("eegv");
   if (!root) return;
   var $ = function (id) { return document.getElementById(id); };
@@ -418,15 +487,8 @@
   var MUSE_SERVICE = 0xfe8d, MUSE_CTRL = "273e0001-4c4d-454d-96be-f03bac821358";
   var MUSE_EEG = ["273e0003-4c4d-454d-96be-f03bac821358", "273e0004-4c4d-454d-96be-f03bac821358",
     "273e0005-4c4d-454d-96be-f03bac821358", "273e0006-4c4d-454d-96be-f03bac821358"];
-  function museCmd(s) { var e = new TextEncoder().encode("X" + s + "\n"); e[0] = e.length - 1; return e; }
-  function museDecode(dv) {
-    var b = new Uint8Array(dv.buffer, dv.byteOffset + 2, dv.byteLength - 2), out = [];
-    for (var i = 0; i + 2 < b.length + 1 && out.length < 12; i += 3) {
-      out.push(0.48828125 * (((b[i] << 4) | (b[i + 1] >> 4)) - 0x800));
-      if (out.length < 12) out.push(0.48828125 * ((((b[i + 1] & 0xf) << 8) | b[i + 2]) - 0x800));
-    }
-    return out;
-  }
+  var museCmd = EEGVCodec.museCmd;
+  function museDecode(dv) { return EEGVCodec.museDecode(new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength)); }
   function startMuse() {
     if (!navigator.bluetooth) return;
     var device, ctrl;
@@ -473,7 +535,6 @@
   }
 
   // ---------- source: OpenBCI Cyton over Web Serial ----------
-  var CYTON_UV = 4.5 / 24 / (Math.pow(2, 23) - 1) * 1e6;
   function startCyton() {
     if (!navigator.serial) return;
     var port, reader, writer, alive = true;
@@ -482,34 +543,21 @@
       return port.open({ baudRate: 115200 });
     }).then(function () {
       writer = port.writable.getWriter(); reader = port.readable.getReader();
-      var enc = new TextEncoder(), text = "", buf = new Uint8Array(0), daisy = false, streaming = false, pend = null;
+      var enc = new TextEncoder(), dec = new TextDecoder(), text = "", parser = null;
       function send(s) { return writer.write(enc.encode(s)); }
-      function parse() {
-        var i = 0;
-        while (i + 33 <= buf.length) {
-          if (buf[i] !== 0xa0 || (buf[i + 32] & 0xf0) !== 0xc0) { i++; continue; }
-          var sn = buf[i + 1], ch = new Array(8);
-          for (var k = 0; k < 8; k++) {
-            var o = i + 2 + k * 3, v = (buf[o] << 16) | (buf[o + 1] << 8) | buf[o + 2];
-            if (v & 0x800000) v |= ~0xffffff;
-            ch[k] = v * CYTON_UV;
-          }
-          if (!S.paused) {
-            if (!daisy) push(ch);
-            else if (sn % 2 === 1) pend = ch;
-            else if (pend) { push(pend.concat(ch)); pend = null; }
-          }
-          i += 33;
-        }
-        buf = buf.slice(i);
+      function waitFor(test, ms) {
+        return new Promise(function (res) {
+          var t0 = Date.now();
+          (function check() { if (test() || Date.now() - t0 > ms) res(); else setTimeout(check, 50); })();
+        });
       }
       function loop() {
         return reader.read().then(function (r) {
           if (r.done || !alive) return;
-          if (!streaming) {
-            text += new TextDecoder().decode(r.value);
-          } else {
-            var nb = new Uint8Array(buf.length + r.value.length); nb.set(buf); nb.set(r.value, buf.length); buf = nb; parse();
+          if (!parser) text += dec.decode(r.value, { stream: true });
+          else {
+            var frames = parser.feed(r.value);
+            if (!S.paused) for (var i = 0; i < frames.length; i++) push(frames[i]);
           }
           return loop();
         });
@@ -526,16 +574,25 @@
       };
       setSourceButtons("cyton");
       loop().catch(function (e) { if (alive) { status("Error", false); log("Serial read stopped. " + (e && e.message ? e.message : "")); } });
-      return send("s").then(function () { return send("v"); }).then(function () {
-        return new Promise(function (res) { setTimeout(res, 2500); });
-      }).then(function () {
-        daisy = /daisy/i.test(text);
-        log(daisy ? "Cyton with Daisy found, 16 channels at 125 Hz each." : "Cyton found, 8 channels at 250 Hz.");
-        if (!/\$\$\$|OpenBCI|ADS1299/i.test(text)) log("No reply text from the board. Check that the dongle switch is on GPIO 6 and the board is on PC.");
-        setup(daisy ? 125 : 250, CYTON_LABELS.slice(0, daisy ? 16 : 8));
-        streaming = true;
-        return send("b");
-      }).then(function () { status("Live", true); });
+      var vText = "";
+      return send("s").then(function () { return send("v"); })
+        .then(function () { return waitFor(function () { return text.indexOf("$$$") >= 0; }, 4000); })
+        .then(function () {
+          vText = text; text = "";
+          if (!/\$\$\$|OpenBCI|ADS1299/i.test(vText)) log("No reply from the board. Check that the dongle switch is on GPIO 6 and the board is on PC.");
+          var fw = vText.match(/Firmware:\s*v?([0-9.]+)/i);
+          if (fw) log("Cyton firmware " + fw[1] + ".");
+          return send("C");
+        })
+        .then(function () { return waitFor(function () { return EEGVCodec.daisyFromReply(text) !== null; }, 2000); })
+        .then(function () {
+          var daisy = EEGVCodec.daisyFromReply(text);
+          if (daisy === null) { daisy = /daisy/i.test(vText); log("No reply to the channel mode command. Using the reset text."); }
+          log(daisy ? "Cyton with Daisy found, 16 channels at 125 Hz each." : "Cyton found, 8 channels at 250 Hz.");
+          setup(daisy ? 125 : 250, CYTON_LABELS.slice(0, daisy ? 16 : 8));
+          parser = EEGVCodec.cytonParser(daisy);
+          return send("b");
+        }).then(function () { status("Live", true); });
     }).catch(function (e) {
       if (e && e.name === "NotFoundError") return;
       status("Error", false); log("Cyton connection failed. " + (e && e.message ? e.message : ""));

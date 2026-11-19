@@ -30,7 +30,7 @@ Every hardware film is linked here and in the README of its design.
 
 | Software | What it does | State |
 |---|---|---|
-| [eeg-viewer](software/eeg-viewer/) | Live EEG in the browser for the EEG headset frame, a Muse or an OpenBCI Cyton, with spectrum, band power, alpha head map, contact check, eyes closed test and CSV recording. MIT. [Open it](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Checked with open EEG and simulated device data. **Not checked with a real device yet.** |
+| [eeg-viewer](software/eeg-viewer/) | Live EEG in the browser for the EEG headset frame, a Muse or an OpenBCI Cyton, with spectrum, band power, alpha head map, contact check, eyes closed test and CSV recording. MIT. [Open it](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Decoders match the muse-js and OpenBCI reference test data. **Not run with a real device yet.** |
 
 ![Open EEG Viewer, demo recording with the eyes closed](software/eeg-viewer/screenshot.png)
 
