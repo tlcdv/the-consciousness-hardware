@@ -7,7 +7,9 @@ read it, change a parameter and build it again.
 License: [CERN-OHL-S v2](LICENSE). Attribution is required. If you share a changed design or
 sell a product made from it, you must publish your changed source under the same license.
 
-![Tang Nano 9K case, exploded CAD render](designs/tang-nano-9k-case/renders/exploded-branded.png)
+| [EEG headset frame](designs/eeg-headset-frame/) | [Tang Nano 9K case](designs/tang-nano-9k-case/) |
+|---|---|
+| ![EEG headset frame on a glass head model, render](designs/eeg-headset-frame/renders/hero-front.png) | ![Tang Nano 9K case, exploded CAD render](designs/tang-nano-9k-case/renders/exploded-branded.png) |
 
 ## Films
 
@@ -22,7 +24,7 @@ Every hardware film is linked here and in the README of its design.
 | Design | For | State |
 |---|---|---|
 | [tang-nano-9k-case](designs/tang-nano-9k-case/) | Sipeed Tang Nano 9K FPGA board, used by the [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design | v0.1.1. Fit checked in CAD only. **Not printed yet.** |
-| [eeg-headset-frame](designs/eeg-headset-frame/) | 16-channel EEG headset frame, sizes S, M, L, for the OpenBCI Cyton board with the Daisy module and any 10 mm electrode. Recording only | v0.1.0. Checked in CAD only. **Not printed yet.** |
+| [eeg-headset-frame](designs/eeg-headset-frame/) | 16-channel EEG headset frame, sizes S, M, L, for the OpenBCI Cyton board with the Daisy module and OpenBCI 5 mm dry comb electrodes. Recording only. [Build guide](https://theconsciousness.ai/hardware/designs/eeg-headset-frame/) | v0.1.0. Checked in CAD only. **Not printed yet.** |
 
 ## Two variants of each part
 
@@ -35,7 +37,7 @@ may appear on a part that is sold. See [NOTICE](NOTICE).
 | `branded` | Project mark and the source URL | Personal prints only. Never sold, never listed on a print service |
 
 The shape is the same. Renders use the project's colours: near black background, orange
-`#ff6f40`, cream, thin near white edge lines, and the main logo at the bottom right
+`#ff6f40` (Tang Nano case) or coral `#ff6b61` with clear parts (EEG frame), cream, thin near white edge lines, and the main logo at the bottom right
 (`python render.py <design>`). Copies without the logo go to `renders/listing/` for print service
 listings. All parts share one shape language (`common/style.py`): the same edge
 radius and chamfer, and a row of vent slots whose lengths follow a Boltzmann distribution,
