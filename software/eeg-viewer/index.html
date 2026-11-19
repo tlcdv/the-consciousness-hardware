@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open EEG Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+<style>
+html, body { margin: 0; background: #0a0b0d; color: #f0eee6; }
+body { padding: 0; }
+.tcai-console { margin: 0 !important; border: 0 !important; }
+.page-foot { font: 12px "IBM Plex Mono", monospace; color: rgba(240,238,230,0.56); padding: 12px 16px 24px; }
+.page-foot a { color: #ff6b61; }
+</style>
+<style>
+/* Shared console chrome.
+
+   One source of truth for every console on the site. On a markdown page, put it
+   inside a style element like this, with the kramdown escape around it:
+
+       {::nomarkdown}
+       [style element]
+       {% include console-styles.css %}
+       [closing style element]
+       {:/nomarkdown}
+
+   Two things there are load-bearing and both were found the hard way.
+
+   The raw wrapper stops this file from including itself. Liquid renders it, so
+   an unescaped include tag in this comment makes the build die with "stack
+   level too deep".
+
+   The kramdown escape stops kramdown parsing the CSS as markdown. Without it
+   the custom property names turn into en-dashes, comment delimiters turn into
+   emphasis tags, and the whole block is wrapped in paragraphs.
+
+   Never write a literal closing style tag anywhere in this file, not even in a
+   comment. An HTML parser ends the element at the first one it sees and does
+   not care that it is inside a CSS comment, so everything after it would render
+   as visible text on the page.
+
+   It is an include and not a file in public/css/ on purpose. _includes/head.html
+   builds stylesheet URLs with absolute_url, so a new stylesheet would load from
+   theconsciousness.ai even when Jekyll serves on localhost, and could not be
+   developed against. Inlining through an include keeps one copy AND keeps local
+   preview honest. Same approach as _includes/consciousness_clock_styles.css.
+
+   Specificity. The site's global element rules beat a single class, so every
+   rule here carries at least two classes (.tcai-console .con-thing). Dropping
+   the container class makes text on the panels render invisible.
+
+   Colour. A console commits to a dark instrument panel in BOTH site themes and
+   paints its own background. That is deliberate. It removes the whole class of
+   bug where a token that does not invert makes the graphic disappear, and it
+   matches the canvas, which hardcodes the same palette for the same reason.
+
+   Look. Since the 2026-10-12 redesign the site follows public/css/kit.css:
+   square corners, 1px hairlines, no glows and no gradient fills, condensed
+   uppercase titles (Barlow Condensed), mono uppercase labels at 0.14em
+   letter spacing (IBM Plex Mono), Inter Tight body text, and clay as the one
+   accent. The console tokens below are the kit's dark tokens, held dark in
+   both site themes. scripts/probes/probe_console_kit.js checks this.
+
+   A page adds only its own stage rules on top of this. */
+
+.tcai-console {
+  --con-ink: #0a0b0d;
+  --con-panel: #111317;
+  --con-line: rgba(236, 233, 226, 0.12);
+  --con-line2: rgba(236, 233, 226, 0.26);
+  --con-text: #f0eee6;
+  --con-dim: rgba(240, 238, 230, 0.56);
+  --con-accent: #d97757;
+  --con-gold: #d6ab71;
+  --con-live: #6fbf73;
+  --con-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --con-cond: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --con-sans: "Inter Tight", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --con-track: 0.14em;
+
+  background: var(--con-ink);
+  color: var(--con-text);
+  border: 1px solid var(--con-line);
+  border-radius: 0;
+  overflow: hidden;
+  margin: 2rem 0 2.5rem;
+}
+
+/* Break out of the 48rem text column. The sidebar becomes fixed at 48em and is
+   12rem wide, so from 48em up the bleed stops 6rem short on each side, which is
+   exactly the sidebar's half width and keeps the console clear of it. */
+@media (max-width: 47.99em) {
+  /* Cancel the container padding so the console runs edge to edge on a phone. */
+  .tcai-console { margin-left: -1rem; margin-right: -1rem; border-radius: 0; }
+}
+@media (min-width: 48em) {
+  /* 6rem is the sidebar's half width, which is the arithmetic that puts the left
+     edge exactly at the sidebar. The extra 0.75rem is clearance for the
+     container's own padding and for the scrollbar, which 100vw counts and the
+     page does not. Measured at 1600px: without it the console sat 8px under the
+     sidebar. */
+  .tcai-console {
+    /* --crail-reserve is half the rail column's width (main.css), and it must
+       sit on BOTH margins. The console is centred inside .wrap, which the
+       fixed sidebar and the rail pull off centre by equal amounts, so this
+       formula's left edge lands at sidebar + 15.75px - rail/2. Without the
+       reserve on the left margin the console slides that far under the
+       sidebar (measured 2026-09-11: 84px hidden at 1366, 101px at 1920). It
+       is 0 below 85em, where the rail is a floating button instead. Defined
+       in public/css/main.css beside the rail itself. Measured before the
+       reserve existed at 1920px: the console reached x=1897 and the rail
+       started at x=1703, so 190px of the console was covered. */
+    margin-left: calc(50% - 50vw + 6.75rem + var(--crail-reserve, 0px));
+    margin-right: calc(50% - 50vw + 6.75rem + var(--crail-reserve, 0px));
+  }
+}
+
+/* Links inside a console sit on the dark panel in BOTH site themes. The global
+   link colour is dark ink in light mode, which was invisible here. */
+.tcai-console a { color: var(--con-accent); }
+
+/* -- header -- */
+.tcai-console .con-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--con-line);
+  background: var(--con-panel);
+}
+.tcai-console .con-logo { width: 46px; height: 46px; flex: none; }
+.tcai-console .con-head-id { display: flex; flex-direction: column; margin-right: auto; }
+.tcai-console .con-head-title {
+  font-family: var(--con-cond);
+  font-size: 1.45rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--con-text);
+}
+.tcai-console .con-head-sub {
+  font-family: var(--con-mono);
+  font-size: 0.66rem;
+  margin-top: 0.3rem;
+  letter-spacing: var(--con-track);
+  text-transform: uppercase;
+  color: var(--con-accent);
+}
+.tcai-console .con-head-stats { display: flex; flex-wrap: wrap; gap: 0.35rem 1.6rem; }
+.tcai-console .con-hs { display: flex; flex-direction: column; }
+.tcai-console .con-hs-v {
+  font-family: var(--con-mono);
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--con-text);
+  line-height: 1.15;
+}
+.tcai-console .con-hs-key .con-hs-v { color: var(--con-accent); }
+.tcai-console .con-hs-l {
+  font-family: var(--con-mono);
+  font-size: 0.6rem;
+  letter-spacing: var(--con-track);
+  text-transform: uppercase;
+  color: var(--con-dim);
+}
+.tcai-console .con-status { color: var(--con-gold); }
+.tcai-console.is-live .con-status { color: var(--con-live); }
+
+/* -- grid -- */
+.tcai-console .con-grid { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 60em) {
+  .tcai-console .con-grid { grid-template-columns: 15rem minmax(0, 1fr) 15rem; }
+}
+
+.tcai-console .con-panel {
+  padding: 0.9rem 1rem 1.1rem;
+  border-bottom: 1px solid var(--con-line);
+  background: rgba(255, 255, 255, 0.012);
+}
+@media (min-width: 60em) {
+  .tcai-console .con-left { border-right: 1px solid var(--con-line); border-bottom: 0; }
+  .tcai-console .con-right { border-left: 1px solid var(--con-line); border-bottom: 0; }
+}
+/* Panel headings are h2 elements, and public/css/main.css carries a BARE
+   element rule, "h2 { color: var(--amodei-gold) !important; }". An important
+   declaration on an element selector beats any specificity, so this is the one
+   colour in the file that has to answer in kind. Without it the headings render
+   gold and the panels lose their quiet hierarchy. Nothing else here needs it,
+   which was checked by measuring every console element in the browser.
+
+   Note this rule lives in the production stylesheet, which local preview loads
+   over absolute_url. That makes it cross-origin on localhost, so it cannot be
+   read back from script. Confirmed by fetching main.css directly.
+
+   The same file also carries "h1, ..., h6 { font-family: var(--font-heading)
+   !important; }", so the family needs the same answer. Without it every panel
+   heading rendered in the serif article face, measured 2026-09-25 on all six
+   consoles that use this file. */
+.tcai-console .con-panel-h {
+  font-family: var(--con-mono) !important;
+  font-size: 0.63rem;
+  letter-spacing: var(--con-track);
+  text-transform: uppercase;
+  color: var(--con-dim) !important;
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--con-line);
+  font-weight: 400;
+}
+.tcai-console .con-panel-h + .con-panel-h,
+.tcai-console .con-dl + .con-panel-h,
+.tcai-console .con-matrix + .con-panel-h,
+.tcai-console .con-roster-list + .con-panel-h { margin-top: 1.1rem; }
+
+/* -- roster -- */
+.tcai-console .con-roster-list { list-style: none; margin: 0; padding: 0; }
+.tcai-console .con-roster-list li { margin: 0; padding: 0; }
+.tcai-console .con-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.42rem 0.4rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--con-mono);
+}
+.tcai-console .con-chip:hover,
+.tcai-console .con-chip:focus-visible { background: rgba(255, 255, 255, 0.05); }
+.tcai-console .con-chip.is-selected {
+  background: rgba(217, 119, 87, 0.14);
+  border-left-color: var(--con-accent);
+}
+.tcai-console .con-chip-body { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.tcai-console .con-chip-name {
+  font-size: 0.78rem;
+  color: var(--con-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tcai-console .con-chip.is-selected .con-chip-name { color: var(--con-accent); }
+.tcai-console .con-chip-meta {
+  font-size: 0.62rem;
+  color: var(--con-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tcai-console .con-chip-id { font-size: 0.62rem; color: var(--con-dim); flex: none; }
+.tcai-console .con-led {
+  width: 7px; height: 7px; border-radius: 0;
+  flex: none; background: var(--con-dim);
+}
+/* Three LED states. Filled and glowing means the source affirms it, a hollow
+   ring means the source is undecided, flat grey means the source rules it out.
+   The state names are generic so any console can map its own status to them. */
+.tcai-console .con-chip-on .con-led { background: var(--con-accent); }
+.tcai-console .con-chip-maybe .con-led { background: transparent; border: 1px solid var(--con-gold); }
+.tcai-console .con-chip-off .con-led { background: rgba(240, 238, 230, 0.25); }
+
+/* -- toggles -- */
+.tcai-console .con-layers { display: flex; flex-direction: column; gap: 0.15rem; }
+.tcai-console .con-toggle {
+  display: flex; align-items: center; gap: 0.55rem;
+  width: 100%; padding: 0.35rem 0.4rem;
+  border: 0; background: none; cursor: pointer;
+  font-family: var(--con-mono); font-size: 0.72rem;
+  color: var(--con-text); text-align: left;
+}
+.tcai-console .con-toggle:hover,
+.tcai-console .con-toggle:focus-visible { background: rgba(255, 255, 255, 0.05); }
+.tcai-console .con-sw {
+  width: 26px; height: 14px; border-radius: 0; flex: none;
+  background: var(--con-accent); position: relative; transition: background 0.15s ease;
+}
+.tcai-console .con-sw::after {
+  content: ""; position: absolute; top: 2px; left: 14px;
+  width: 10px; height: 10px; border-radius: 0;
+  background: var(--con-ink); transition: left 0.15s ease;
+}
+.tcai-console .con-toggle.is-off { color: var(--con-dim); }
+.tcai-console .con-toggle.is-off .con-sw { background: rgba(240, 238, 230, 0.22); }
+.tcai-console .con-toggle.is-off .con-sw::after { left: 2px; }
+
+/* -- stage -- */
+.tcai-console .con-stage { display: flex; flex-direction: column; min-width: 0; background: var(--con-ink); }
+.tcai-console .con-canvas {
+  display: block;
+  width: 100%;
+  height: 58vh;
+  min-height: 320px;
+  max-height: 680px;
+  /* The specimen view only needs taps and a sideways drag on the deep time
+     strip, so pan-y lets the page scroll normally when a finger lands on the
+     canvas. The chart needs two axis panning and pinch zoom, so it takes the
+     gesture over. Without this the canvas swallowed every touch and the page
+     could not be scrolled past the console on a phone. */
+  touch-action: pan-y;
+  cursor: grab;
+}
+.tcai-console .con-canvas.is-chart { touch-action: none; }
+.tcai-console .con-canvas:active { cursor: grabbing; }
+
+/* Pan, zoom and reset act on the chart's time axis only. In the specimen view
+   they have nothing to act on, so the bar is not shown there. */
+.tcai-console.is-atlas .con-stage-bar { display: none; }
+.tcai-console .con-stage-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 1.4rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--con-line);
+}
+.tcai-console .con-sb { font-family: var(--con-mono); font-size: 0.72rem; color: var(--con-text); }
+.tcai-console .con-sb b {
+  color: var(--con-dim); font-weight: 400;
+  text-transform: uppercase; letter-spacing: var(--con-track); font-size: 0.62rem;
+}
+.tcai-console .con-zoom { display: flex; gap: 0.35rem; margin-left: auto; }
+.tcai-console .con-zoom + .con-btn { margin-left: 0.5rem; }
+/* Buttons follow the kit: a hairline box, mono uppercase, and a hover that
+   brightens the border only. A pressed or active button carries the clay
+   accent, the same on every console. */
+.tcai-console .con-btn {
+  margin-left: auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 32px;
+  font-family: var(--con-mono); font-size: 0.66rem;
+  letter-spacing: var(--con-track); text-transform: uppercase; line-height: 1;
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--con-line2); border-radius: 0; box-shadow: none;
+  background: transparent; color: var(--con-text); cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.tcai-console .con-btn:hover,
+.tcai-console .con-btn:focus-visible { border-color: var(--con-text); background: rgba(128, 128, 128, 0.1); }
+.tcai-console .con-btn:focus-visible { outline: 1px solid var(--con-accent); outline-offset: 2px; }
+.tcai-console .con-btn[aria-pressed="true"],
+.tcai-console .con-btn.is-active {
+  border-color: var(--con-accent); color: var(--con-accent); background: rgba(217, 119, 87, 0.12);
+}
+.tcai-console .con-btn:disabled { opacity: 0.4; cursor: default; }
+.tcai-console .con-btn-sq {
+  margin-left: 0;
+  /* 40px square is the smallest reliable touch target. These are the only zoom
+     control on a phone, because touch-action is none on the canvas and the
+     browser's own pinch never fires. */
+  min-width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  border-radius: 0;
+}
+/* The live region reserves its space instead of growing into it. Its text
+   changes on every selection, and a one line to three line swing moves the
+   canvas about 37px, which on a phone means the row you just tapped slides out
+   from under your finger before the next tap. Measured on this page. */
+.tcai-console .con-hint {
+  padding: 0 1rem 0.8rem;
+  margin: 0;
+  min-height: 3.2em;
+}
+@media (max-width: 34em) {
+  .tcai-console .con-hint { min-height: 4.8em; }
+}
+
+/* -- scrubber --
+   A console whose subject is deep time needs a time control where a live
+   console has a clock. The range input is a real input, so it is keyboard
+   operable with arrow keys for free and needs no key handling of our own. */
+.tcai-console .con-scrub {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px solid var(--con-line);
+}
+.tcai-console .con-scrub-range {
+  flex: 1 1 auto; min-width: 0; height: 22px;
+  -webkit-appearance: none; appearance: none;
+  background: transparent; cursor: pointer; margin: 0;
+}
+.tcai-console .con-scrub-range::-webkit-slider-runnable-track {
+  height: 3px; background: var(--con-line); border-radius: 0;
+}
+.tcai-console .con-scrub-range::-moz-range-track {
+  height: 3px; background: var(--con-line); border-radius: 0;
+}
+.tcai-console .con-scrub-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; margin-top: -5.5px;
+  border-radius: 0; border: 0;
+  background: var(--con-accent);
+}
+.tcai-console .con-scrub-range::-moz-range-thumb {
+  width: 14px; height: 14px; border: 0; border-radius: 0;
+  background: var(--con-accent);
+}
+.tcai-console .con-scrub-range:focus-visible { outline: 1px solid var(--con-accent); outline-offset: 3px; }
+.tcai-console .con-scrub-v {
+  font-family: var(--con-mono); font-size: 0.74rem;
+  color: var(--con-accent); flex: none; min-width: 6.5rem; text-align: right;
+}
+
+/* -- sliders and selects --
+   Every range input and select inside a console takes the kit look: a 2px
+   hairline track, a square clay thumb, and a hairline box for a select. The
+   browser's own rounded blue control never shows. A page may set the width. */
+.tcai-console input[type="range"]:not(.con-scrub-range) {
+  height: 18px; margin: 0;
+  -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer;
+  accent-color: var(--con-accent);
+}
+.tcai-console input[type="range"]:not(.con-scrub-range)::-webkit-slider-runnable-track { height: 2px; background: var(--con-line2); border-radius: 0; }
+.tcai-console input[type="range"]:not(.con-scrub-range)::-moz-range-track { height: 2px; background: var(--con-line2); border-radius: 0; }
+.tcai-console input[type="range"]:not(.con-scrub-range)::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 12px; height: 12px;
+  margin-top: -5px; border: 0; border-radius: 0; background: var(--con-accent);
+}
+.tcai-console input[type="range"]:not(.con-scrub-range)::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 0; background: var(--con-accent); }
+.tcai-console input[type="range"]:focus-visible { outline: 1px solid var(--con-accent); outline-offset: 3px; }
+.tcai-console select {
+  -webkit-appearance: none; appearance: none;
+  padding: 0.35rem 1.7rem 0.35rem 0.5rem;
+  font-family: var(--con-mono); font-size: 0.72rem;
+  color: var(--con-text); background-color: var(--con-panel);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23d97757' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.55rem center;
+  border: 1px solid var(--con-line2); border-radius: 0; cursor: pointer;
+}
+.tcai-console select:focus-visible { outline: 1px solid var(--con-accent); outline-offset: 2px; }
+.tcai-console select option { background: var(--con-panel); color: var(--con-text); }
+
+/* -- telemetry -- */
+.tcai-console .con-t-name {
+  font-family: var(--con-mono); font-size: 0.92rem;
+  color: var(--con-accent); margin: 0 0 0.1rem; line-height: 1.25;
+}
+.tcai-console .con-t-sub { font-family: var(--con-mono); font-size: 0.66rem; color: var(--con-dim); margin: 0 0 0.75rem; }
+/* The LABEL may wrap, the VALUE never may. With `auto 1fr` a long label such
+   as "cells in the released connectome" starved the value column until 473
+   broke into 4, 7 and 3 stacked on three lines, which reads as three numbers.
+   The value column now takes what it needs and the label yields. */
+.tcai-console .con-dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.28rem 0.75rem; margin: 0; }
+.tcai-console .con-dl dt {
+  font-family: var(--con-mono); font-size: 0.62rem;
+  letter-spacing: var(--con-track); text-transform: uppercase; color: var(--con-dim);
+}
+.tcai-console .con-dl dd {
+  font-family: var(--con-mono); font-size: 0.74rem;
+  color: var(--con-text); margin: 0; text-align: right;
+  /* wrap at spaces only, never inside a number or a word */
+  word-break: keep-all; overflow-wrap: normal;
+}
+
+/* -- feature matrix --
+   Present, absent and unknown are three states, never two. A source that does
+   not say is not a source that says no, and collapsing the two would invent
+   evidence. */
+.tcai-console .con-matrix { display: flex; flex-direction: column; gap: 0.22rem; margin: 0; }
+.tcai-console .con-mx {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  font-family: var(--con-mono); font-size: 0.68rem; line-height: 1.35;
+}
+.tcai-console .con-mx-k { flex: none; width: 2.1rem; color: var(--con-dim); }
+.tcai-console .con-mx-l { color: var(--con-dim); }
+.tcai-console .con-mx.is-yes .con-mx-l { color: var(--con-text); }
+.tcai-console .con-mx.is-yes .con-mx-k { color: var(--con-accent); }
+.tcai-console .con-mx.is-unknown .con-mx-k { color: var(--con-gold); }
+
+/* -- merch link --
+   One quiet line, never a card. The console answers the question the shirt
+   asks, so the link is editorial. Anything louder turns a research page into a
+   shop, which is the failure the placement rule exists to prevent. */
+.tcai-console .con-merch {
+  display: inline-block; margin-top: 0.85rem;
+  font-family: var(--con-mono); font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: var(--con-gold); border-bottom: 1px solid rgba(214, 171, 113, 0.4);
+  text-decoration: none;
+}
+.tcai-console .con-merch:hover,
+.tcai-console .con-merch:focus-visible { color: var(--con-accent); border-bottom-color: var(--con-accent); }
+
+/* -- event log -- */
+.tcai-console .con-logwrap { padding: 0.8rem 1rem 1rem; border-top: 1px solid var(--con-line); }
+.tcai-console .con-log { max-height: 8.5rem; overflow-y: auto; }
+.tcai-console .con-log-line {
+  display: flex; gap: 0.75rem;
+  font-family: var(--con-mono); font-size: 0.7rem;
+  color: var(--con-dim); padding: 0.1rem 0;
+}
+.tcai-console .con-log-t { color: rgba(240, 238, 230, 0.35); flex: none; }
+.tcai-console .con-log-line.is-ok { color: var(--con-text); }
+.tcai-console .con-log-line.is-sel { color: var(--con-accent); }
+.tcai-console .con-log-line.is-warn { color: var(--con-gold); }
+
+/* -- kind badge --
+   Every chapter says what the reader is looking at, in the same words on every
+   console. data: numbers from a released file. model: a simulation running on
+   stated equations. illustration: a drawing that is neither, for example idle
+   activity or a schematic position. The badge sits beside the chapter title or
+   the readout, never inside the canvas. */
+.tcai-console .con-kind {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-family: var(--con-mono); font-size: 0.58rem;
+  letter-spacing: var(--con-track); text-transform: uppercase;
+  padding: 0.2rem 0.5rem; border: 1px solid var(--con-line2);
+  color: var(--con-dim); white-space: nowrap; vertical-align: middle;
+}
+.tcai-console .con-kind::before { content: ""; width: 6px; height: 6px; background: currentColor; }
+.tcai-console .con-kind-data { color: var(--con-accent); border-color: rgba(217, 119, 87, 0.5); }
+.tcai-console .con-kind-model { color: var(--con-gold); border-color: rgba(214, 171, 113, 0.5); }
+.tcai-console .con-kind-illustration { color: var(--con-dim); }
+
+/* -- notes -- */
+.tcai-console .con-note {
+  font-family: var(--con-mono); font-size: 0.68rem;
+  color: var(--con-dim); line-height: 1.6; margin: 0.5rem 0;
+}
+.tcai-console .con-note strong { color: var(--con-text); font-weight: 400; }
+.tcai-console .con-note a { color: var(--con-gold); }
+.tcai-console .con-note a:hover { color: var(--con-accent); }
+
+/* -- data table --
+   Its own colours, because the console owns its background and the global table
+   rules assume the page background. The zebra striping is cancelled for the
+   same reason. */
+.tcai-console .con-table {
+  width: 100%; border-collapse: collapse; border: 0;
+  margin: 0; font-size: 0.86rem;
+  border-top: 1px solid var(--con-line);
+}
+.tcai-console .con-table caption {
+  text-align: left; font-family: var(--con-mono); font-size: 0.63rem;
+  letter-spacing: var(--con-track); text-transform: uppercase; color: var(--con-dim);
+  padding: 0.9rem 1rem 0.5rem;
+}
+.tcai-console .con-table th,
+.tcai-console .con-table td {
+  text-align: left; padding: 0.55rem 0.7rem; vertical-align: top;
+  border: 0; border-bottom: 1px solid var(--con-line);
+  background: transparent; color: var(--con-text);
+}
+.tcai-console .con-table thead th {
+  font-family: var(--con-mono); font-size: 0.6rem;
+  letter-spacing: var(--con-track); text-transform: uppercase;
+  color: var(--con-dim); font-weight: 400; white-space: nowrap;
+}
+.tcai-console .con-table tbody tr:nth-child(odd) td,
+.tcai-console .con-table tbody tr:nth-child(odd) th { background: transparent; }
+.tcai-console .con-table th:first-child { padding-left: 1rem; }
+.tcai-console .con-table td:last-child { padding-right: 1rem; }
+.tcai-console .con-pick {
+  display: block; font-family: var(--con-mono); font-size: 0.82rem;
+  padding: 0; border: 0; background: none; color: var(--con-text);
+  text-align: left; cursor: pointer; border-bottom: 1px solid transparent;
+}
+.tcai-console .con-pick:hover,
+.tcai-console .con-pick:focus-visible { border-bottom-color: var(--con-accent); }
+.tcai-console .con-sub { display: block; font-family: var(--con-mono); font-size: 0.64rem; color: var(--con-dim); }
+.tcai-console tr.is-selected > th,
+.tcai-console tr.is-selected > td { background: rgba(217, 119, 87, 0.11); }
+.tcai-console tr.is-selected .con-pick { color: var(--con-accent); }
+.tcai-console .con-flag { font-family: var(--con-mono); font-size: 0.68rem; white-space: nowrap; }
+.tcai-console .con-flag-on { color: var(--con-accent); }
+.tcai-console .con-flag-maybe { color: var(--con-gold); }
+.tcai-console .con-flag-off { color: var(--con-dim); }
+.tcai-console .con-why > td {
+  padding-top: 0; padding-left: 1rem; padding-right: 1rem;
+  font-family: var(--con-sans); font-weight: 300; font-size: 0.86rem;
+  color: var(--con-dim); line-height: 1.55;
+}
+.tcai-console .con-why a { color: var(--con-gold); }
+.tcai-console .con-why a:hover { color: var(--con-accent); }
+
+/* -- mobile --
+   The panels stack under the stage. Everything keeps an absolute font size
+   rather than scaling with the graphic, which is the lesson the consciousness
+   clock recorded, and the table scrolls inside its own box. */
+@media (max-width: 60em) {
+  .tcai-console .con-head-stats { gap: 0.3rem 1.1rem; }
+  .tcai-console .con-hs-v { font-size: 0.92rem; }
+  .tcai-console .con-grid { grid-template-columns: 1fr; }
+  .tcai-console .con-stage { order: -1; }
+  .tcai-console .con-canvas { height: 62vw; min-height: 280px; }
+}
+@media (max-width: 34em) {
+  .tcai-console .con-head { gap: 0.7rem; padding: 0.7rem 0.8rem; }
+  .tcai-console .con-logo { width: 36px; height: 36px; }
+  .tcai-console .con-head-title { font-size: 1.2rem; }
+  .tcai-console .con-head-stats { gap: 0.25rem 0.9rem; }
+  .tcai-console .con-hs-v { font-size: 0.85rem; }
+  .tcai-console .con-hs-l { font-size: 0.55rem; }
+  .tcai-console .con-table { display: block; overflow-x: auto; white-space: nowrap; }
+  .tcai-console .con-why > td { white-space: normal; min-width: 18rem; }
+  .tcai-console .con-log { max-height: 6.5rem; }
+  .tcai-console .con-scrub-v { min-width: 5.5rem; font-size: 0.68rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcai-console .con-sw,
+  .tcai-console .con-sw::after,
+  .tcai-console .con-btn,
+  .tcai-console .con-pick { transition: none !important; }
+}
+
+/* A header stat whose value changes length must not change the header height.
+   The stats row is flex-wrap, so a longer value re-wraps it and moves
+   everything below, including the canvas. Fixed width, and nothing wraps. */
+.tcai-console .con-hs-fix { width: 6.5rem; }
+.tcai-console .con-hs-fix .con-hs-v {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Touch targets. On a touch screen every control is at least 40 px tall, the
+   size a fingertip hits without aiming. The phone audit of 2026-10-15 found
+   toggles at 28 px, region chips at 23 px and the name buttons in the tables
+   at 19 px. A mouse keeps the compact sizes. */
+@media (pointer: coarse) {
+  .tcai-console .con-toggle,
+  .tcai-console .con-chip,
+  .tcai-console .cac-species-btn { min-height: 40px; }
+  .tcai-console .con-pick { min-height: 36px; padding-top: 8px; padding-bottom: 8px; }
+}
+
+
+#eegv { --con-accent: #ff6b61; }
+#eegv .con-btn[aria-pressed="true"], #eegv .con-btn.is-active { background: rgba(255, 107, 97, 0.12); }
+#eegv .con-canvas { height: 62vh; min-height: 460px; max-height: 720px; cursor: default; }
+@media (max-width: 60em) { #eegv .con-canvas { height: 118vw; min-height: 440px; max-height: 680px; } }
+#eegv [hidden] { display: none !important; }
+#eegv .eegv-row { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0 0.8rem; }
+#eegv .eegv-row .con-btn { margin-left: 0; flex: 1 1 auto; min-height: 40px; }
+#eegv .eegv-field { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin: 0.4rem 0; font-family: var(--con-mono); font-size: 0.68rem; letter-spacing: var(--con-track); text-transform: uppercase; color: var(--con-dim); }
+#eegv .eegv-field select, #eegv .eegv-field input { min-height: 36px; min-width: 0; width: 8.5rem; font-family: var(--con-mono); font-size: 0.78rem; color: var(--con-text); background: var(--con-ink); border: 1px solid var(--con-line2); border-radius: 0; padding: 0.2rem 0.4rem; text-transform: none; letter-spacing: 0; }
+#eegv .eegv-head { display: block; width: 100%; aspect-ratio: 1 / 1; max-height: 300px; margin: 0 auto 0.6rem; }
+#eegv .eegv-spec { display: block; width: 100%; height: 150px; margin-bottom: 0.6rem; }
+#eegv .eegv-bars { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+#eegv .eegv-bar { display: grid; grid-template-columns: 6.6rem minmax(0, 1fr) 2.6rem; align-items: center; gap: 0.5rem; font-family: var(--con-mono); font-size: 0.66rem; color: var(--con-dim); }
+#eegv .eegv-bar-t { height: 8px; background: var(--con-line); position: relative; }
+#eegv .eegv-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(240, 238, 230, 0.55); transition: width 0.25s linear; }
+#eegv .eegv-bar.is-alpha .eegv-bar-fill { background: var(--con-accent); }
+#eegv .eegv-bar.is-alpha { color: var(--con-accent); }
+#eegv .eegv-bar-v { text-align: right; color: var(--con-text); }
+#eegv .eegv-chans { list-style: none; margin: 0 0 0.9rem; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.2rem 0.8rem; }
+#eegv .eegv-chan { display: flex; align-items: center; gap: 0.45rem; margin: 0; font-family: var(--con-mono); font-size: 0.68rem; color: var(--con-text); }
+#eegv .eegv-chan-v { margin-left: auto; color: var(--con-dim); }
+#eegv .eegv-led { width: 7px; height: 7px; background: var(--con-dim); flex: none; }
+#eegv .eegv-chan.is-ok .eegv-led { background: var(--con-live); }
+#eegv .eegv-chan.is-noisy .eegv-led { background: var(--con-gold); }
+#eegv .eegv-chan.is-flat .eegv-led, #eegv .eegv-chan.is-railed .eegv-led { background: #e2574c; }
+#eegv .eegv-test { padding: 0.8rem 1rem 1rem; border-top: 1px solid var(--con-line); }
+#eegv .eegv-test-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+#eegv .eegv-test-head .con-panel-h { border: 0; margin: 0; padding: 0; }
+#eegv .eegv-test-head .con-btn { margin-left: 0; min-height: 40px; }
+#eegv .eegv-test-say { font-family: var(--con-sans); font-size: 1.05rem; color: var(--con-text); margin: 0.7rem 0 0.6rem; min-height: 2.6em; }
+#eegv .eegv-test-track { height: 3px; background: var(--con-line); }
+#eegv .eegv-test-bar { height: 3px; width: 0; background: var(--con-accent); }
+#eegv .con-head { padding-right: 4.5rem; }
+#eegv .eegv-view { display: flex; gap: 0.35rem; }
+#eegv .eegv-view .con-btn-sq { margin-left: 0; }
+#eegv .eegv-full-close { display: none; }
+#eegv.is-full .eegv-full-open { display: none; }
+#eegv.is-full .eegv-full-close { display: block; }
+#eegv.no-panels .con-left, #eegv.no-panels .con-right { display: none; }
+#eegv.no-panels .con-grid { grid-template-columns: minmax(0, 1fr) !important; }
+#eegv:fullscreen { width: 100%; height: 100%; margin: 0; border: 0; overflow-y: auto; }
+#eegv.is-max { position: fixed; inset: 0; z-index: 2147483000; margin: 0 !important; border: 0; overflow-y: auto; overscroll-behavior: contain; }
+#eegv.is-full .con-canvas { height: calc(100vh - 11rem); height: calc(100dvh - 11rem); min-height: 320px; max-height: none; }
+#eegv.is-full .con-head { padding-right: 1rem; }
+
+@media (min-width: 60em) { #eegv .con-grid { grid-template-columns: 15rem minmax(0, 1fr) 19rem; } }
+@media (max-width: 34em) {
+  #eegv .con-head-stats { gap: 0.35rem 1.1rem; }
+  #eegv .con-head { padding-right: 1rem; }
+}
+</style>
+</head>
+<body>
+<div id="eegv" class="tcai-console" data-base="data/">
+
+  <header class="con-head">
+    <svg class="con-logo" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke-width="1.25">
+      <rect x="3.5" y="3.5" width="41" height="41" stroke="rgba(236,233,226,0.26)" />
+      <circle cx="24" cy="25" r="13" stroke="rgba(236,233,226,0.7)" />
+      <path d="M20.5 12.4 L24 8.5 L27.5 12.4" stroke="rgba(236,233,226,0.7)" />
+      <path d="M8 31 L13 31 L15 25 L18 35 L21 27 L24 31 L40 31" stroke="#ff6b61" />
+    </svg>
+    <div class="con-head-id">
+      <span class="con-head-title">Open EEG Viewer</span>
+      <span class="con-head-sub">Live in the browser, open source</span>
+    </div>
+    <div class="con-head-stats">
+      <div class="con-hs"><span class="con-hs-v con-status" id="eegv-status">Waiting</span><span class="con-hs-l">Status</span></div>
+      <div class="con-hs con-hs-key"><span class="con-hs-v" id="eegv-alpha">&ndash;</span><span class="con-hs-l">Alpha share</span></div>
+      <div class="con-hs"><span class="con-hs-v" id="eegv-peak">&ndash;</span><span class="con-hs-l">Alpha peak</span></div>
+      <div class="con-hs"><span class="con-hs-v" id="eegv-quality">&ndash;</span><span class="con-hs-l">Good contact</span></div>
+    </div>
+    <div class="eegv-view" role="group" aria-label="View">
+      <button type="button" class="con-btn con-btn-sq" id="eegv-panels" aria-pressed="false" aria-label="Hide the side panels" title="Hide the side panels">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" /><path d="M8 4v16M16 4v16" /></svg>
+      </button>
+      <button type="button" class="con-btn con-btn-sq" id="eegv-full" aria-pressed="false" aria-label="Full screen" title="Full screen">
+        <svg class="eegv-full-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+        <svg class="eegv-full-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" /></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="con-grid">
+
+    <aside class="con-panel con-left">
+      <h2 class="con-panel-h">Source</h2>
+      <div class="eegv-row" role="group" aria-label="Signal source">
+        <button type="button" class="con-btn" id="eegv-src-demo" aria-pressed="false">Demo</button>
+        <button type="button" class="con-btn" id="eegv-src-muse" aria-pressed="false">Muse</button>
+        <button type="button" class="con-btn" id="eegv-src-cyton" aria-pressed="false">Cyton</button>
+      </div>
+      <p class="con-note" id="eegv-muse-note" hidden="">Muse needs Web Bluetooth, which this browser does not have. Use Chrome or Edge on a computer or on Android. iPhone and iPad browsers do not have it.</p>
+      <p class="con-note" id="eegv-cyton-note" hidden="">Cyton needs Web Serial, which this browser does not have. Use Chrome or Edge on a computer.</p>
+      <div id="eegv-demo-ctl">
+        <p class="con-note">Open recording from PhysioNet, one minute with the eyes open, then one minute with the eyes closed.</p>
+        <div class="eegv-row">
+          <button type="button" class="con-btn" id="eegv-jump-open">Eyes open</button>
+          <button type="button" class="con-btn" id="eegv-jump-closed">Eyes closed</button>
+        </div>
+      </div>
+
+      <h2 class="con-panel-h">Display</h2>
+      <label class="eegv-field"><span>Scale</span>
+        <select id="eegv-scale">
+          <option value="25">&plusmn;25 &micro;V</option>
+          <option value="50">&plusmn;50 &micro;V</option>
+          <option value="100" selected="">&plusmn;100 &micro;V</option>
+          <option value="200">&plusmn;200 &micro;V</option>
+        </select></label>
+      <label class="eegv-field"><span>Window</span>
+        <select id="eegv-win">
+          <option value="4">4 s</option>
+          <option value="8" selected="">8 s</option>
+          <option value="10">10 s</option>
+        </select></label>
+      <label class="eegv-field"><span>Mains filter</span>
+        <select id="eegv-notch">
+          <option value="50">50 Hz</option>
+          <option value="60">60 Hz</option>
+          <option value="0">Off</option>
+        </select></label>
+      <div class="eegv-row"><button type="button" class="con-btn" id="eegv-pause" aria-pressed="false">Pause</button></div>
+
+      <h2 class="con-panel-h">Record</h2>
+      <div class="eegv-row">
+        <button type="button" class="con-btn" id="eegv-rec" aria-pressed="false">Record</button>
+        <button type="button" class="con-btn" id="eegv-mark" disabled="">Mark</button>
+      </div>
+      <label class="eegv-field"><span>Marker text</span><input type="text" id="eegv-mark-text" maxlength="60" placeholder="eyes closed" /></label>
+      <p class="con-note">The recording is saved as a CSV file on this device. Nothing is sent to a server.</p>
+    </aside>
+
+    <div class="con-stage">
+      <canvas id="eegv-traces" class="con-canvas" role="img" aria-label="Live EEG traces, one row for each electrode, the newest second on the right. The readouts and the text beside the graphic carry the same information."></canvas>
+      <div class="con-stage-bar">
+        <span class="con-sb"><b>Rate</b> <span id="eegv-fs">&ndash;</span></span>
+        <span class="con-sb"><b>Channels</b> <span id="eegv-ch">&ndash;</span></span>
+        <span class="con-sb"><b>Filter</b> 1 to 45 Hz</span>
+        <span class="con-sb"><b>Coral</b> <span id="eegv-focus">&ndash;</span></span>
+      </div>
+      <div class="eegv-test">
+        <div class="eegv-test-head">
+          <h2 class="con-panel-h">Eyes closed test</h2>
+          <button type="button" class="con-btn" id="eegv-test" aria-pressed="false">Start the 40 s test</button>
+        </div>
+        <p class="eegv-test-say" id="eegv-test-say" aria-live="polite">Twenty seconds with the eyes open, then twenty with the eyes closed. A tone marks each change.</p>
+        <div class="eegv-test-track"><div class="eegv-test-bar" id="eegv-test-bar"></div></div>
+        <p class="con-note" id="eegv-test-out" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <aside class="con-panel con-right">
+      <h2 class="con-panel-h">Alpha over the head</h2>
+      <canvas id="eegv-head" class="eegv-head" role="img" aria-label="Top view of the head with each electrode coloured by its share of alpha power."></canvas>
+      <h2 class="con-panel-h">Spectrum, coral channels</h2>
+      <canvas id="eegv-spec" class="eegv-spec" role="img" aria-label="Power spectrum from 0 to 40 Hz of the coral channels over the last 4 seconds, with the alpha band shaded."></canvas>
+      <h2 class="con-panel-h">Band power, coral channels</h2>
+      <div class="eegv-bars">
+        <div class="eegv-bar" id="eegv-b-delta"><span class="eegv-bar-n">Delta 1 to 4</span><span class="eegv-bar-t"><span class="eegv-bar-fill"></span></span><span class="eegv-bar-v">&ndash;</span></div>
+        <div class="eegv-bar" id="eegv-b-theta"><span class="eegv-bar-n">Theta 4 to 8</span><span class="eegv-bar-t"><span class="eegv-bar-fill"></span></span><span class="eegv-bar-v">&ndash;</span></div>
+        <div class="eegv-bar is-alpha" id="eegv-b-alpha"><span class="eegv-bar-n">Alpha 8 to 13</span><span class="eegv-bar-t"><span class="eegv-bar-fill"></span></span><span class="eegv-bar-v">&ndash;</span></div>
+        <div class="eegv-bar" id="eegv-b-beta"><span class="eegv-bar-n">Beta 13 to 30</span><span class="eegv-bar-t"><span class="eegv-bar-fill"></span></span><span class="eegv-bar-v">&ndash;</span></div>
+        <div class="eegv-bar" id="eegv-b-gamma"><span class="eegv-bar-n">Gamma 30 to 40</span><span class="eegv-bar-t"><span class="eegv-bar-fill"></span></span><span class="eegv-bar-v">&ndash;</span></div>
+      </div>
+      <h2 class="con-panel-h">Contact per electrode</h2>
+      <ul class="eegv-chans" id="eegv-chans"></ul>
+      <h2 class="con-panel-h">Event log</h2>
+      <div id="eegv-log" class="con-log" aria-live="off"></div>
+    </aside>
+  </div>
+</div>
+<p class="page-foot">Build the 16 channel headset for this viewer: <a href="https://theconsciousness.ai/hardware/designs/eeg-headset-frame/">open EEG headset frame</a>.<br>Open EEG Viewer, MIT. Hosted at <a href="https://theconsciousness.ai/hardware/eeg-viewer/">theconsciousness.ai/hardware/eeg-viewer</a>. Source: <a href="https://github.com/tlcdv/the-hardware/tree/main/software/eeg-viewer">github.com/tlcdv/the-hardware</a>. Demo data: PhysioNet EEGMMIDB S001 R01 and R02, ODC-By 1.0, doi 10.13026/C28G6P.</p>
+<script src="eeg-viewer.js"></script>
+</body>
+</html>

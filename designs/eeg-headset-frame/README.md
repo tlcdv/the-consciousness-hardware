@@ -10,6 +10,9 @@ no part for stimulation.
 
 ![The frame on the glass head model, with the electrode carriers and the board pod](renders/hero-front.png)
 
+Build guide with the parts list and prices: https://theconsciousness.ai/hardware/designs/eeg-headset-frame/
+See the signal live in the browser: [Open EEG Viewer](https://theconsciousness.ai/hardware/eeg-viewer/), source in [`software/eeg-viewer`](../../software/eeg-viewer/).
+
 ## Images
 
 Renders, not photos. The glass shape is the ellipsoid head model used for the checks. The dark
@@ -140,6 +143,23 @@ compass mark, for personal prints only (see [NOTICE](../../NOTICE)).
 | M3 self-tapping screw, 8 mm, carrier lock | 16 |
 | M1.6 self-tapping screw, 6 mm, board posts | 4 |
 | M2 self-tapping screw, 8 mm, pod cover | 2 |
+
+## Software
+
+The [Open EEG Viewer](https://theconsciousness.ai/hardware/eeg-viewer/) shows the 16 channels of the
+frame live in Chrome or Edge, with no install, through the Cyton USB dongle (Web Serial). It names
+each channel by its 10-20 position, checks the contact of each electrode, and runs a 40 s eyes
+closed test for the alpha rhythm at O1 and O2. The source is in
+[`software/eeg-viewer`](../../software/eeg-viewer/) (MIT). Connect the electrodes in this order:
+
+| Input | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| Cyton | Fp1 | Fp2 | C3 | C4 | P7 | P8 | O1 | O2 |
+| Daisy (9 to 16) | F7 | F8 | F3 | F4 | T7 | T8 | P3 | P4 |
+
+The OpenBCI GUI and the BrainFlow library also read the frame on a desktop.
+
+[![Open EEG Viewer, demo recording with the eyes closed](../../software/eeg-viewer/screenshot.png)](https://theconsciousness.ai/hardware/eeg-viewer/)
 
 ## Parameters
 

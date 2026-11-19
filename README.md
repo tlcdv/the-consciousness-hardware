@@ -24,7 +24,15 @@ Every hardware film is linked here and in the README of its design.
 | Design | For | State |
 |---|---|---|
 | [tang-nano-9k-case](designs/tang-nano-9k-case/) | Sipeed Tang Nano 9K FPGA board, used by the [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design | v0.1.1. Fit checked in CAD only. **Not printed yet.** |
-| [eeg-headset-frame](designs/eeg-headset-frame/) | 16-channel EEG headset frame, sizes S, M, L, for the OpenBCI Cyton board with the Daisy module and OpenBCI 5 mm dry comb electrodes. Recording only. [Build guide](https://theconsciousness.ai/hardware/designs/eeg-headset-frame/) | v0.1.0. Checked in CAD only. **Not printed yet.** |
+| [eeg-headset-frame](designs/eeg-headset-frame/) | 16-channel EEG headset frame, sizes S, M, L, for the OpenBCI Cyton board with the Daisy module and OpenBCI 5 mm dry comb electrodes. Recording only. [Build guide](https://theconsciousness.ai/hardware/designs/eeg-headset-frame/), [live viewer](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Checked in CAD only. **Not printed yet.** |
+
+## Software
+
+| Software | What it does | State |
+|---|---|---|
+| [eeg-viewer](software/eeg-viewer/) | Live EEG in the browser for the EEG headset frame, a Muse or an OpenBCI Cyton, with spectrum, band power, alpha head map, contact check, eyes closed test and CSV recording. MIT. [Open it](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Checked with open EEG and simulated device data. **Not checked with a real device yet.** |
+
+![Open EEG Viewer, demo recording with the eyes closed](software/eeg-viewer/screenshot.png)
 
 ## Two variants of each part
 

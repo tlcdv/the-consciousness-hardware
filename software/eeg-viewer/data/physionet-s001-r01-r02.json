@@ -1,0 +1,38 @@
+{
+ "fs": 160.0,
+ "channels": [
+  "Fp1",
+  "Fp2",
+  "F7",
+  "F3",
+  "F4",
+  "F8",
+  "T7",
+  "C3",
+  "C4",
+  "T8",
+  "P7",
+  "P3",
+  "P4",
+  "P8",
+  "O1",
+  "O2"
+ ],
+ "scale_uv": 0.1,
+ "samples": 19520,
+ "segments": [
+  {
+   "label": "Eyes open",
+   "start_s": 0,
+   "end_s": 61.0
+  },
+  {
+   "label": "Eyes closed",
+   "start_s": 61.0,
+   "end_s": 122.0
+  }
+ ],
+ "source": "PhysioNet EEG Motor Movement/Imagery Dataset v1.0.0, subject S001, runs 1 and 2",
+ "doi": "10.13026/C28G6P",
+ "license": "ODC-By 1.0"
+}
