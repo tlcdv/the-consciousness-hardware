@@ -45,7 +45,7 @@ may appear on a part that is sold. See [NOTICE](NOTICE).
 | `branded` | Project mark and the source URL | Personal prints only. Never sold, never listed on a print service |
 
 The shape is the same. Renders use the project's colours: near black background, orange
-`#ff6f40` (Tang Nano case) or coral `#ff6b61` with clear parts (EEG frame), cream, thin near white edge lines, and the main logo at the bottom right
+`#ff6f40` (Tang Nano case) or red-pink `#e64254` with clear glass parts (EEG frame), cream, thin near white edge lines, and the main logo at the bottom right
 (`python render.py <design>`). Copies without the logo go to `renders/listing/` for print service
 listings. All parts share one shape language (`common/style.py`): the same edge
 radius and chamfer, and a row of vent slots whose lengths follow a Boltzmann distribution,

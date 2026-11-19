@@ -59,8 +59,8 @@ def mesh(part, offset=(0, 0, 0)):
 
 
 HEAD = "#2a2d33"           # head model, dark and part transparent
-PINK = "#ff6b61"           # film accent (red coral), EEG frame and covers
-GLASS = "glass"            # clear part: light tint, bright pink-white edges
+PINK = "#e64254"           # film key word red-pink (owner 2026-11-19, was #ff6b61), EEG frame and covers
+GLASS = "glass"            # clear part: light tint, neutral white edges (never pink)
 
 
 def add_part(plotter, surface, colour, line_opacity=0.55):
@@ -72,7 +72,7 @@ def add_part(plotter, surface, colour, line_opacity=0.55):
                                               boundary_edges=True,
                                               non_manifold_edges=False,
                                               manifold_edges=False)
-        plotter.add_mesh(edges, color="#ffd6d3", line_width=1.8,
+        plotter.add_mesh(edges, color="#f5f5f2", line_width=1.8,
                          opacity=0.85)
         return
     if colour == HEAD:

@@ -91,7 +91,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   // ---------- colours (the canvas paints its own dark panel, like every console) ----------
   var C = {
     ink: "#0a0b0d", line: "rgba(236,233,226,0.12)", line2: "rgba(236,233,226,0.26)",
-    text: "#f0eee6", dim: "rgba(240,238,230,0.56)", coral: "#ff6b61", gold: "#d6ab71",
+    text: "#f0eee6", dim: "rgba(240,238,230,0.56)", coral: "#e64254", gold: "#d6ab71",
     live: "#6fbf73", bad: "#e2574c"
   };
   var MONO = '"IBM Plex Mono", ui-monospace, Menlo, monospace';
@@ -349,7 +349,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     g.font = (9 * d) + "px " + MONO; g.textBaseline = "middle"; g.textAlign = "center";
     // alpha band shade
     var xa = l + (W - l - r) * 8 / fmax, xb = l + (W - l - r) * 13 / fmax;
-    g.fillStyle = "rgba(255,107,97,0.10)"; g.fillRect(xa, t, xb - xa, H - t - b);
+    g.fillStyle = "rgba(230, 66, 84,0.10)"; g.fillRect(xa, t, xb - xa, H - t - b);
     g.strokeStyle = C.line; g.lineWidth = 1;
     [0, 10, 20, 30, 40].forEach(function (f) {
       var x = l + (W - l - r) * f / fmax;
@@ -388,7 +388,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
       var rr = Math.min(1.02, p[0] / 90) * R, a = p[1] * Math.PI / 180;
       var x = cx - rr * Math.sin(a), y = cy - rr * Math.cos(a);
       var v = S.chanPow[c] ? S.chanPow[c].alpha / maxA : 0, rad = Math.max(10 * d, R * 0.1);
-      g.fillStyle = "rgba(255,107,97," + (0.08 + 0.88 * v).toFixed(3) + ")";
+      g.fillStyle = "rgba(230, 66, 84," + (0.08 + 0.88 * v).toFixed(3) + ")";
       g.beginPath(); g.arc(x, y, rad, 0, 2 * Math.PI); g.fill();
       g.strokeStyle = S.focus.indexOf(l) >= 0 ? C.coral : C.line2; g.lineWidth = 1 * d; g.stroke();
       g.fillStyle = v > 0.55 ? C.ink : C.text; g.font = "500 " + Math.round(Math.max(8.5 * d, rad * 0.62)) + "px " + MONO;

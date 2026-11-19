@@ -17,7 +17,7 @@ See the signal live in the browser: [Open EEG Viewer](https://theconsciousness.a
 
 Renders, not photos. The glass shape is the ellipsoid head model used for the checks. The dark
 octagon is a simplified model of the Cyton board, and the dark block under it is the battery.
-The frame and the cover are coral (`#ff6b61`). The pod and the 16 carriers are clear.
+The frame and the cover are red-pink (`#e64254`, the film key word colour). The pod and the 16 carriers are clear glass.
 
 | | |
 |---|---|
