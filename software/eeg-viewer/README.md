@@ -8,6 +8,12 @@ Hosted version: https://theconsciousness.ai/hardware/eeg-viewer/
 
 ![Open EEG Viewer, demo recording with the eyes closed](screenshot.png)
 
+## Film
+
+[![Print an EEG headset and watch your brain in the browser, film on YouTube](https://img.youtube.com/vi/r6wWGMYatmw/maxresdefault.jpg)](https://youtu.be/r6wWGMYatmw)
+
+[Print an EEG headset and watch your brain in the browser](https://youtu.be/r6wWGMYatmw) (1:06, YouTube) shows this viewer as the last part of the open EEG stack, after the [headset frame](../../designs/eeg-headset-frame/) and the board. The viewer shots are frames of the live page playing the open PhysioNet demo recording.
+
 ## What it does
 
 - Draws every channel live, filtered from 1 to 45 Hz, with a 50 or 60 Hz mains notch.

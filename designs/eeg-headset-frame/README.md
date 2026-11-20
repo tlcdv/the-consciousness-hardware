@@ -13,6 +13,12 @@ no part for stimulation.
 Build guide with the parts list and prices: https://theconsciousness.ai/hardware/designs/eeg-headset-frame/
 See the signal live in the browser: [Open EEG Viewer](https://theconsciousness.ai/hardware/eeg-viewer/), source in [`software/eeg-viewer`](../../software/eeg-viewer/).
 
+## Film
+
+[![Print an EEG headset and watch your brain in the browser, film on YouTube](https://img.youtube.com/vi/r6wWGMYatmw/maxresdefault.jpg)](https://youtu.be/r6wWGMYatmw)
+
+[Print an EEG headset and watch your brain in the browser](https://youtu.be/r6wWGMYatmw) (1:06, YouTube) shows the whole open EEG stack. The frame on the 10-20 map, the three sizes from one script, the board in its clear pod and the [Open EEG Viewer](../../software/eeg-viewer/) in the browser. The headset shots are renders of this CAD. The frame is not printed yet. The brain waves in the film are open PhysioNet data, not recorded with this frame.
+
 ## Images
 
 Renders, not photos. The glass shape is the ellipsoid head model used for the checks. The dark
@@ -22,7 +28,7 @@ The frame and the cover are red-pink (`#e64254`, the film key word colour). The 
 | | |
 |---|---|
 | ![Frame from the back, with the pod](renders/hero-back.png) | ![Frame from the side](renders/hero-side.png) |
-| From the back, with the clear pod, the board and the coral cover | From the side, with the strap tab behind the ear |
+| From the back, with the clear pod, the board and the red-pink cover | From the side, with the strap tab behind the ear |
 | ![Board pod close-up](renders/hero-pod.png) | ![Position names on the hubs](renders/hub-names.png) |
 | Board pod with the vent cover and the compass mark (branded) | Each hub carries its 10-20 name |
 | ![Exploded view](renders/exploded.png) | ![Electrode carrier](renders/carrier.png) |
