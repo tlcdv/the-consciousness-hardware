@@ -7,9 +7,9 @@ read it, change a parameter and build it again.
 License: [CERN-OHL-S v2](LICENSE). Attribution is required. If you share a changed design or
 sell a product made from it, you must publish your changed source under the same license.
 
-| [EEG headset frame](designs/eeg-headset-frame/) | [Tang Nano 9K case](designs/tang-nano-9k-case/) |
-|---|---|
-| ![EEG headset frame on a glass head model, render](designs/eeg-headset-frame/renders/hero-front.png) | ![Tang Nano 9K case, exploded CAD render](designs/tang-nano-9k-case/renders/exploded-branded.png) |
+| [EEG headset frame](designs/eeg-headset-frame/) | [EEG band](designs/eeg-band/) | [Tang Nano 9K case](designs/tang-nano-9k-case/) |
+|---|---|---|
+| ![EEG headset frame on a glass head model, render](designs/eeg-headset-frame/renders/hero-front.png) | ![EEG band on a glass head model, render](designs/eeg-band/renders/hero-side.png) | ![Tang Nano 9K case, exploded CAD render](designs/tang-nano-9k-case/renders/exploded-branded.png) |
 
 ## Films
 
@@ -26,12 +26,13 @@ Every hardware film is linked here and in the README of its design.
 |---|---|---|
 | [tang-nano-9k-case](designs/tang-nano-9k-case/) | Sipeed Tang Nano 9K FPGA board, used by the [thermospike](https://github.com/tlcdv/thermospike) FPGA reference design | v0.1.1. Fit checked in CAD only. **Not printed yet.** |
 | [eeg-headset-frame](designs/eeg-headset-frame/) | 16-channel EEG headset frame, sizes S, M, L, for the OpenBCI Cyton board with the Daisy module and OpenBCI 5 mm dry comb electrodes. Recording only. [Build guide](https://theconsciousness.ai/hardware/designs/eeg-headset-frame/), [live viewer](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Checked in CAD only. **Not printed yet.** |
+| [eeg-band](designs/eeg-band/) | 3-channel EEG band, sizes S, M, L, on the 10-20 ring (Fp1, O1, O2), for the Upside Down Labs NPG Lite wireless board in a side pod. Recording only. [Build guide](https://theconsciousness.ai/hardware/designs/eeg-band/), [band demo in the viewer](https://theconsciousness.ai/hardware/eeg-viewer/?demo=band) | v0.2.0. Checked in CAD only. **Not printed yet.** |
 
 ## Software
 
 | Software | What it does | State |
 |---|---|---|
-| [eeg-viewer](software/eeg-viewer/) | Live EEG in the browser for the EEG headset frame, a Muse or an OpenBCI Cyton, with spectrum, band power, alpha head map, contact check, eyes closed test and CSV recording. MIT. [Open it](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Decoders match the muse-js and OpenBCI reference test data. **Not run with a real device yet.** |
+| [eeg-viewer](software/eeg-viewer/) | Live EEG in the browser for the EEG headset frame, the EEG band (NPG Lite), a Muse or an OpenBCI Cyton, with spectrum, band power, alpha head map, contact check, eyes closed test and CSV recording. MIT. [Open it](https://theconsciousness.ai/hardware/eeg-viewer/) | v0.1.0. Muse and OpenBCI decoders match the muse-js and OpenBCI reference test data. The NPG Lite decoder follows the maker's published packet layout. **Not run with a real device yet.** |
 
 ![Open EEG Viewer, demo recording with the eyes closed](software/eeg-viewer/screenshot.png)
 
@@ -46,7 +47,7 @@ may appear on a part that is sold. See [NOTICE](NOTICE).
 | `branded` | Project mark and the source URL | Personal prints only. Never sold, never listed on a print service |
 
 The shape is the same. Renders use the project's colours: near black background, orange
-`#ff6f40` (Tang Nano case) or red-pink `#e64254` with clear glass parts (EEG frame), cream, thin near white edge lines, and the main logo at the bottom right
+`#ff6f40` (Tang Nano case) or red-pink `#e64254` with clear glass parts (EEG frame and EEG band), cream, thin near white edge lines, and the main logo at the bottom right
 (`python render.py <design>`). Copies without the logo go to `renders/listing/` for print service
 listings. All parts share one shape language (`common/style.py`): the same edge
 radius and chamfer, and a row of vent slots whose lengths follow a Boltzmann distribution,

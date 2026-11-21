@@ -12,6 +12,14 @@
      With the Daisy, odd sample numbers carry channels 1 to 8 and even ones 9 to 16, so each
      channel arrives at 125 Hz. Source: docs.openbci.com/Cyton/CytonDataFormat/. Commands s, v, C, b.
      The reply to C tells 8 from 16 channels (docs.openbci.com/Cyton/CytonSDK/).
+   - NPG Lite (Upside Down Labs Neuro PlayGround Lite): Web Bluetooth. Layout read from the maker's
+     firmware Chords-Arduino-Firmware/NPG-LITE-BLE (GPL-3.0, read for the facts only, no code copied):
+     service 4fafc201-1fb5-459e-8fcc-c5c9c331914b, data beb5483e-36e1-4688-b7f5-ea07361b26a8 (notify),
+     control 0000ff01-0000-1000-8000-00805f9b34fb (text commands START, STOP), battery
+     f633d0ec-46b4-43c1-a39f-1ca06d0602e1 (one byte, percent). 500 Hz, 10 samples per notification,
+     each sample = 1 counter byte + 2 bytes per channel, 12 bit ADC value, most significant byte first.
+     Device name NPG-Lite-3CH or NPG-Lite-6CH. The analog gain is not published, so values are ADC
+     counts centred on 2048, not microvolts. NOT tested with a real board.
    The decoders are checked against the test vectors of muse-js and OpenBCI_NodeJS_Utilities,
    see test/codec-test.js in the source folder.
 */
@@ -75,8 +83,33 @@ var EEGVCodec = (function () {
     if (/16\$\$\$/.test(t)) return true;
     return null;
   }
+  // NPG Lite notification: NPG_BLOCK samples, each a counter byte and nch big endian 12 bit values.
+  // The channel count follows from the length. Values come back centred on 2048 (ADC counts).
+  // `state.last` keeps the last counter, so a gap between notifications is counted in `state.missed`.
+  var NPG_BLOCK = 10;
+  function npgChannels(len) {
+    if (!len || len % NPG_BLOCK) return 0;
+    var per = len / NPG_BLOCK;
+    return per >= 3 && (per - 1) % 2 === 0 ? (per - 1) / 2 : 0;
+  }
+  function npgDecode(bytes, state) {
+    var nch = npgChannels(bytes.length), per = 1 + 2 * nch, frames = [];
+    if (!nch) { if (state) state.bad = (state.bad || 0) + 1; return frames; }
+    for (var s = 0; s < NPG_BLOCK; s++) {
+      var o = s * per, cnt = bytes[o];
+      if (state) {
+        if (state.last !== undefined && state.last !== null) state.missed = (state.missed || 0) + ((cnt - state.last - 1 + 256) % 256);
+        state.last = cnt;
+      }
+      var fr = new Array(nch);
+      for (var c = 0; c < nch; c++) fr[c] = ((bytes[o + 1 + 2 * c] << 8) | bytes[o + 2 + 2 * c]) - 2048;
+      frames.push(fr);
+    }
+    return frames;
+  }
   return { MUSE_UV: MUSE_UV, CYTON_UV: CYTON_UV, museCmd: museCmd, muse12: muse12, museDecode: museDecode,
-    int24: int24, cytonParser: cytonParser, daisyFromReply: daisyFromReply };
+    int24: int24, cytonParser: cytonParser, daisyFromReply: daisyFromReply,
+    NPG_BLOCK: NPG_BLOCK, npgChannels: npgChannels, npgDecode: npgDecode };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
 
@@ -103,7 +136,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   var POS = {
     Fp1: [72, 18], Fp2: [72, -18], F7: [72, 54], F8: [72, -54], T7: [72, 90], T8: [72, -90],
     P7: [72, 126], P8: [72, -126], O1: [72, 162], O2: [72, -162], C3: [36, 90], C4: [36, -90],
-    AF7: [72, 36], AF8: [72, -36], TP9: [100, 112], TP10: [100, -112]
+    AF7: [72, 36], AF8: [72, -36], TP9: [100, 112], TP10: [100, -112],
+    Fpz: [72, 0], Oz: [72, 180]
   };
   POS.F3 = toPA(mid(sph(36, 0), sph(72, 54)));
   POS.F4 = toPA(mid(sph(36, 0), sph(72, -54)));
@@ -114,6 +148,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   // The first 8 cover front, centre, side and back, so the Cyton alone still gives a useful map.
   var CYTON_LABELS = ["Fp1", "Fp2", "C3", "C4", "P7", "P8", "O1", "O2", "F7", "F8", "F3", "F4", "T7", "T8", "P3", "P4"];
   var MUSE_LABELS = ["TP9", "AF7", "AF8", "TP10"];
+  // Channel order for the open EEG band: input 1 on the forehead, 2 and 3 at the back.
+  var NPG_LABELS = ["Fp1", "O1", "O2", "Fp2", "Fpz", "Oz"];
   var BANDS = [
     { k: "delta", n: "Delta", lo: 1, hi: 4 }, { k: "theta", n: "Theta", lo: 4, hi: 8 },
     { k: "alpha", n: "Alpha", lo: 8, hi: 13 }, { k: "beta", n: "Beta", lo: 13, hi: 30 },
@@ -162,11 +198,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     src: null, fs: 0, labels: [], nch: 0, buf: [], raw: [], head: 0, cap: 0, count: 0,
     filt: [], notch: 50, hp: true, scale: 100, paused: false, win: window.innerWidth < 700 ? 4 : 8,
     rec: null, marks: [], psd: null, freqs: null, chanPow: [], quality: [],
-    focus: [], test: null, lastSpec: 0
+    focus: [], test: null, lastSpec: 0, unit: "\u00b5V"
   };
   try { var nv = localStorage.getItem("eegv-notch"); if (nv) S.notch = +nv; } catch (e) { /* storage off */ }
 
-  function setup(fs, labels) {
+  function setup(fs, labels, unit) {
+    S.unit = unit || "\u00b5V"; setScaleLabels();
     S.fs = fs; S.labels = labels.slice(); S.nch = labels.length; S.cap = Math.round(fs * 12);
     S.buf = []; S.raw = []; S.filt = [];
     for (var c = 0; c < S.nch; c++) { S.buf.push(new Float32Array(S.cap)); S.raw.push(new Float32Array(S.cap)); }
@@ -250,7 +287,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
       var rms = Math.sqrt(ss / q.length), state = "ok";
       if (S.src && S.src.railed && rmax > S.src.railed) state = "railed";
       else if (rms < 0.3) state = "flat";
-      else if (rms > 100) state = "noisy";
+      else if (rms > ((S.src && S.src.noisy) || 100)) state = "noisy";
       S.quality.push({ rms: rms, state: state });
       if (S.focus.indexOf(S.labels[c]) >= 0) { for (i = 0; i < nb; i++) mean[i] += p[i]; wsum++; }
     }
@@ -330,7 +367,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     }
     // scale bar
     g.fillStyle = C.dim; g.textAlign = "right"; g.font = (10 * d) + "px " + MONO;
-    g.fillText("row = \u00b1" + S.scale + " \u00b5V", W - 8 * d, H - bot / 2);
+    g.fillText("row = \u00b1" + S.scale + " " + S.unit, W - 8 * d, H - bot / 2);
     // segment label for the demo
     if (S.src && S.src.segmentLabel) {
       var lab = S.src.segmentLabel();
@@ -416,7 +453,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
       var li = document.querySelector('#eegv-chans [data-ch="' + c + '"]'); if (!li || !S.quality[c]) return;
       var q = S.quality[c];
       li.className = "eegv-chan is-" + q.state;
-      li.querySelector(".eegv-chan-v").textContent = q.state === "ok" ? q.rms.toFixed(1) + " \u00b5V" : q.state;
+      li.querySelector(".eegv-chan-v").textContent = q.state === "ok" ? q.rms.toFixed(1) + " " + S.unit : q.state;
     });
     if (S.test) testTick(fb);
   }
@@ -438,7 +475,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     while (el.children.length > 30) el.removeChild(el.lastChild);
   }
   function setSourceButtons(name) {
-    ["demo", "muse", "cyton"].forEach(function (k) { $("eegv-src-" + k).setAttribute("aria-pressed", k === name ? "true" : "false"); });
+    ["demo", "muse", "cyton", "npg"].forEach(function (k) { $("eegv-src-" + k).setAttribute("aria-pressed", k === name ? "true" : "false"); });
     $("eegv-demo-ctl").hidden = name !== "demo";
   }
 
@@ -455,8 +492,12 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     stopSource();
     status("Loading", false);
     return loadDemo().then(function (dd) {
-      var m = dd.meta, nch = m.channels.length, total = m.samples, pos = Math.round((atSeconds || 0) * m.fs), t0 = performance.now(), sent = 0;
-      setup(m.fs, m.channels);
+      var m = dd.meta, all = m.channels.length, total = m.samples, pos = Math.round((atSeconds || 0) * m.fs), t0 = performance.now(), sent = 0;
+      // ?demo=band: only the three positions of the open EEG band (Fp1, O1, O2), the same recording
+      var band = /[?&]demo=band\b/.test(window.location.search);
+      var pick = band ? ["Fp1", "O1", "O2"].map(function (l) { return m.channels.indexOf(l); }) : m.channels.map(function (_, c) { return c; });
+      var nch = pick.length;
+      setup(m.fs, pick.map(function (c) { return m.channels[c]; }));
       var src = {
         name: "demo",
         tick: function () {
@@ -464,8 +505,8 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
           var due = Math.floor((performance.now() - t0) / 1000 * m.fs);
           var n = Math.min(due - sent, Math.round(m.fs));
           for (var i = 0; i < n; i++) {
-            var fr = new Array(nch), b = pos * nch;
-            for (var c = 0; c < nch; c++) fr[c] = dd.data[b + c] * m.scale_uv;
+            var fr = new Array(nch), b = pos * all;
+            for (var c = 0; c < nch; c++) fr[c] = dd.data[b + pick[c]] * m.scale_uv;
             push(fr); pos = (pos + 1) % total; sent++;
           }
           if (due - sent > m.fs) sent = due;
@@ -479,7 +520,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
       };
       S.src = src; setSourceButtons("demo");
       status("Demo", true);
-      log("Demo started. Open PhysioNet recording, 16 channels at 160 Hz.");
+      log("Demo started. Open PhysioNet recording, " + (band ? "the 3 band channels Fp1, O1, O2" : "16 channels") + " at 160 Hz.");
     }).catch(function () { status("No data", false); log("The demo recording did not load."); });
   }
 
@@ -599,6 +640,62 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     });
   }
 
+  // ---------- source: NPG Lite over Web Bluetooth ----------
+  var NPG_SERVICE = "4fafc201-1fb5-459e-8fcc-c5c9c331914b", NPG_DATA = "beb5483e-36e1-4688-b7f5-ea07361b26a8",
+    NPG_CTRL = "0000ff01-0000-1000-8000-00805f9b34fb", NPG_BATT = "f633d0ec-46b4-43c1-a39f-1ca06d0602e1";
+  function startNpg() {
+    if (!navigator.bluetooth) return;
+    var device, ctrl, data, batt = null, onData, onBatt, enc = new TextEncoder(), st = { last: null, missed: 0 }, ready = false;
+    navigator.bluetooth.requestDevice({ filters: [{ namePrefix: "NPG" }], optionalServices: [NPG_SERVICE] }).then(function (dev) {
+      stopSource();
+      device = dev; status("Connecting", false); log("Connecting to " + (dev.name || "NPG Lite") + ".");
+      return dev.gatt.connect();
+    }).then(function (server) { return server.getPrimaryService(NPG_SERVICE); }).then(function (svc) {
+      return Promise.all([svc.getCharacteristic(NPG_CTRL), svc.getCharacteristic(NPG_DATA),
+        svc.getCharacteristic(NPG_BATT).catch(function () { return null; })]);
+    }).then(function (cs) {
+      ctrl = cs[0]; data = cs[1]; batt = cs[2];
+      onData = function (ev) {
+        var v = ev.target.value, b = new Uint8Array(v.buffer, v.byteOffset, v.byteLength);
+        var nch = EEGVCodec.npgChannels(b.length);
+        if (!nch) return;
+        if (!ready) {
+          var labels = NPG_LABELS.slice(0, nch);
+          while (labels.length < nch) labels.push("Ch" + (labels.length + 1));
+          setup(500, labels, "counts");
+          ready = true; status("Live", true);
+          log("NPG Lite streaming, " + nch + " channels at 500 Hz. Values are ADC counts, not microvolts.");
+        }
+        var fr = EEGVCodec.npgDecode(b, st);
+        if (!S.paused) for (var i = 0; i < fr.length; i++) push(fr[i]);
+      };
+      data.addEventListener("characteristicvaluechanged", onData);
+      if (batt) {
+        onBatt = function (ev) { log("NPG Lite battery " + ev.target.value.getUint8(0) + " %."); };
+        batt.addEventListener("characteristicvaluechanged", onBatt);
+      }
+      S.src = {
+        name: "npg", railed: 2000, noisy: 1500,
+        stop: function () {
+          try { ctrl.writeValue(enc.encode("STOP")); } catch (e) { /* already gone */ }
+          data.removeEventListener("characteristicvaluechanged", onData);
+          if (batt && onBatt) batt.removeEventListener("characteristicvaluechanged", onBatt);
+          if (st.missed) log("NPG Lite: " + st.missed + " samples were lost on the radio link.");
+          try { device.gatt.disconnect(); } catch (e) { /* already gone */ }
+        }
+      };
+      device.addEventListener("gattserverdisconnected", function () { if (S.src && S.src.name === "npg") { status("Disconnected", false); log("The NPG Lite disconnected."); } });
+      setSourceButtons("npg");
+      return data.startNotifications()
+        .then(function () { return batt ? batt.startNotifications().catch(function () {}) : null; })
+        .then(function () { return ctrl.writeValue(enc.encode("START")); })
+        .then(function () { status("Starting", false); log("START sent. Waiting for data."); });
+    }).catch(function (e) {
+      if (e && e.name === "NotFoundError") return;
+      status("Error", false); log("NPG Lite connection failed. " + (e && e.message ? e.message : ""));
+    });
+  }
+
   function stopSource() {
     if (S.rec) stopRecord("Recording stopped because the source changed.");
     if (S.test) endTest(true);
@@ -609,7 +706,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   // ---------- recording (stays in the browser, saved as CSV by the person) ----------
   function startRecord() {
     if (!S.src) return;
-    S.rec = { t0: new Date(), rows: [], max: Math.round(S.fs * 1800), marks: [], labels: S.labels.slice(), fs: S.fs, src: S.src.name };
+    S.rec = { t0: new Date(), rows: [], max: Math.round(S.fs * 1800), marks: [], labels: S.labels.slice(), fs: S.fs, src: S.src.name, unit: S.unit };
     $("eegv-rec").setAttribute("aria-pressed", "true"); $("eegv-rec").textContent = "Stop and save";
     $("eegv-mark").disabled = false; log("Recording started.");
   }
@@ -620,7 +717,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
     if (!r || !r.rows.length) return;
     var lines = ["# Open EEG Viewer, theconsciousness.ai/hardware/eeg-viewer/",
       "# source: " + r.src + (r.src === "demo" ? " (PhysioNet EEGMMIDB S001 R01+R02, ODC-By 1.0, doi 10.13026/C28G6P)" : ""),
-      "# started: " + r.t0.toISOString(), "# sample_rate_hz: " + r.fs, "# unit: microvolt, unfiltered",
+      "# started: " + r.t0.toISOString(), "# sample_rate_hz: " + r.fs, "# unit: " + (r.unit === "counts" ? "ADC counts centred on 2048 (gain not published)" : "microvolt") + ", unfiltered",
       "time_s," + r.labels.join(",") + ",marker"];
     var mk = {}; r.marks.forEach(function (m) { mk[m.i] = (mk[m.i] ? mk[m.i] + " | " : "") + m.t; });
     for (var i = 0; i < r.rows.length; i++) {
@@ -683,6 +780,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   $("eegv-src-demo").addEventListener("click", function () { startDemo(0); });
   $("eegv-src-muse").addEventListener("click", startMuse);
   $("eegv-src-cyton").addEventListener("click", startCyton);
+  $("eegv-src-npg").addEventListener("click", startNpg);
   $("eegv-jump-open").addEventListener("click", function () { if (S.src && S.src.seek) { S.src.seek(5); log("Jumped to eyes open."); } });
   $("eegv-jump-closed").addEventListener("click", function () { if (S.src && S.src.seek) { S.src.seek(66); log("Jumped to eyes closed."); } });
   $("eegv-pause").addEventListener("click", function () {
@@ -703,6 +801,11 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   $("eegv-win").value = String(S.win);
   $("eegv-win").addEventListener("change", function () { S.win = +this.value; });
 
+
+  function setScaleLabels() {
+    var sel = $("eegv-scale");
+    for (var i = 0; i < sel.options.length; i++) sel.options[i].textContent = "\u00b1" + sel.options[i].value + " " + S.unit;
+  }
 
   // ---------- view: hide the side panels, full screen ----------
   // Native Fullscreen API on the console where it exists. Where it is missing or refused (Safari on
@@ -738,7 +841,7 @@ if (typeof module !== "undefined" && module.exports) module.exports = EEGVCodec;
   try { if (localStorage.getItem("eegv-panels") === "off") setPanels(true); } catch (e) { /* storage off */ }
 
   // browser support for each input
-  if (!navigator.bluetooth) { $("eegv-src-muse").disabled = true; $("eegv-muse-note").hidden = false; }
+  if (!navigator.bluetooth) { $("eegv-src-muse").disabled = true; $("eegv-src-npg").disabled = true; $("eegv-muse-note").hidden = false; }
   if (!navigator.serial) { $("eegv-src-cyton").disabled = true; $("eegv-cyton-note").hidden = false; }
   if (!window.isSecureContext) log("This page needs HTTPS for Bluetooth and USB.");
 

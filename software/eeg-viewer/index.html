@@ -720,8 +720,9 @@ body { padding: 0; }
         <button type="button" class="con-btn" id="eegv-src-demo" aria-pressed="false">Demo</button>
         <button type="button" class="con-btn" id="eegv-src-muse" aria-pressed="false">Muse</button>
         <button type="button" class="con-btn" id="eegv-src-cyton" aria-pressed="false">Cyton</button>
+        <button type="button" class="con-btn" id="eegv-src-npg" aria-pressed="false">NPG Lite</button>
       </div>
-      <p class="con-note" id="eegv-muse-note" hidden="">Muse needs Web Bluetooth, which this browser does not have. Use Chrome or Edge on a computer or on Android. iPhone and iPad browsers do not have it.</p>
+      <p class="con-note" id="eegv-muse-note" hidden="">Muse and NPG Lite need Web Bluetooth, which this browser does not have. Use Chrome or Edge on a computer or on Android. iPhone and iPad browsers do not have it.</p>
       <p class="con-note" id="eegv-cyton-note" hidden="">Cyton needs Web Serial, which this browser does not have. Use Chrome or Edge on a computer.</p>
       <div id="eegv-demo-ctl">
         <p class="con-note">Open recording from PhysioNet, one minute with the eyes open, then one minute with the eyes closed.</p>
@@ -738,6 +739,8 @@ body { padding: 0; }
           <option value="50">&plusmn;50 &micro;V</option>
           <option value="100" selected="">&plusmn;100 &micro;V</option>
           <option value="200">&plusmn;200 &micro;V</option>
+          <option value="500">&plusmn;500 &micro;V</option>
+          <option value="1000">&plusmn;1000 &micro;V</option>
         </select></label>
       <label class="eegv-field"><span>Window</span>
         <select id="eegv-win">

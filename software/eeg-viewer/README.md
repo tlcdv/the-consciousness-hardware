@@ -1,7 +1,7 @@
 # Open EEG Viewer
 
-Live EEG in the browser for the [EEG headset frame](../../designs/eeg-headset-frame/), a Muse
-headband or an OpenBCI Cyton. One JavaScript file, no dependencies, no server. The signal stays
+Live EEG in the browser for the [EEG headset frame](../../designs/eeg-headset-frame/), the
+[EEG band](../../designs/eeg-band/) with an NPG Lite board, a Muse headband or an OpenBCI Cyton. One JavaScript file, no dependencies, no server. The signal stays
 on the device.
 
 Hosted version: https://theconsciousness.ai/hardware/eeg-viewer/
@@ -33,7 +33,13 @@ Hosted version: https://theconsciousness.ai/hardware/eeg-viewer/
 | Muse 2, first Muse S | Web Bluetooth | Chrome or Edge on a computer, Chrome on Android | 4 (TP9, AF7, AF8, TP10), 256 Hz |
 | OpenBCI Cyton | Web Serial, USB dongle | Chrome or Edge on a computer | 8, 250 Hz |
 | OpenBCI Cyton + Daisy | Web Serial, USB dongle | Chrome or Edge on a computer | 16, 125 Hz each |
+| Upside Down Labs NPG Lite, 3 or 6 channels | Web Bluetooth | Chrome or Edge on a computer, Chrome on Android | 3 (Fp1, O1, O2) or 6, 500 Hz, in ADC counts |
 | Demo | none | any browser | 16, 160 Hz |
+| Band demo (`?demo=band`) | none | any browser | 3 (Fp1, O1, O2) of the same recording, 160 Hz |
+
+The NPG Lite does not publish its analog gain, so its values are shown in ADC counts centred on
+2048, not in microvolts. The channel names follow the EEG band: Fp1, O1, O2, then Fp2, Fpz, Oz on
+the 6 channel board.
 
 iPhone and iPad browsers have no Web Bluetooth and no Web Serial, so only the demo runs there.
 
@@ -67,6 +73,8 @@ Then open http://localhost:8000/ in Chrome or Edge.
 | Whole page with simulated devices | A 40 uV sine on the Cyton reads 28.3 uV RMS, a 30 uV sine on the Muse 21.2 uV RMS |
 | Real Muse | Not checked yet |
 | Real Cyton | Not checked yet |
+| NPG Lite decoder | Built from the packet layout of the maker's firmware (10 samples per notification, counter byte, 12 bit big endian values). 10 checks on built packets: 3 and 6 channels, odd lengths rejected, values, extremes, counter gaps |
+| Real NPG Lite | Not checked yet |
 | Muse S Athena and newer models | Not supported. They may use another protocol |
 | Ganglion | Not supported. Use the OpenBCI GUI or BrainFlow |
 
@@ -75,7 +83,7 @@ Not a medical device. For learning and home experiments only.
 ## Tests
 
 The decoders are checked against the reference data of the two libraries that define the
-protocols. 23 checks. Each one fails when the matching part of the decoder is broken on purpose.
+protocols, and the NPG Lite decoder against packets built from the maker's layout. 33 checks. Each one fails when the matching part of the decoder is broken on purpose.
 
 ```
 cd software/eeg-viewer
@@ -87,6 +95,7 @@ node test/codec-test.js
 
 - Muse protocol as implemented in [muse-js](https://github.com/urish/muse-js) by Uri Shaked, MIT.
 - Cyton data format: https://docs.openbci.com/Cyton/CytonDataFormat/ and commands: https://docs.openbci.com/Cyton/CytonSDK/
+- NPG Lite packet layout: Upside Down Labs [Chords-Arduino-Firmware](https://github.com/upsidedownlabs/Chords-Arduino-Firmware), `NPG-LITE-BLE` (GPL-3.0). Read for the facts only, no code copied.
 - Reference parser and test data: [OpenBCI_NodeJS_Utilities](https://github.com/OpenBCI/OpenBCI_NodeJS_Utilities) (`@openbci/utilities`, MIT). Daisy pairing as in [OpenBCI_NodeJS_Cyton](https://github.com/OpenBCI/OpenBCI_NodeJS_Cyton).
 - Demo data: Schalk et al. (2004), BCI2000, IEEE Trans Biomed Eng 51(6). PhysioNet EEG Motor
   Movement/Imagery Dataset v1.0.0, subject S001, runs 1 and 2, doi 10.13026/C28G6P, ODC-By 1.0.
