@@ -110,5 +110,41 @@ for (const [t, want] of [["16$$$", true], ["daisy attached16$$$", true], ["no da
   check("C reply " + JSON.stringify(t), codec.daisyFromReply(t) === want, String(codec.daisyFromReply(t)));
 }
 
+// ---------- NPG Lite, packets built with the layout of the maker's firmware ----------
+// Chords-Arduino-Firmware/NPG-LITE-BLE: 10 samples per notification, each sample = counter byte,
+// then (v >> 8) & 0xFF and v & 0xFF for every channel (12 bit ADC value).
+{
+  function npgPacket(nch, firstCounter, valueOf) {
+    const per = 1 + 2 * nch, b = new Uint8Array(10 * per);
+    for (let s = 0; s < 10; s++) {
+      b[s * per] = (firstCounter + s) & 0xff;
+      for (let c = 0; c < nch; c++) {
+        const v = valueOf(s, c);
+        b[s * per + 1 + c * 2] = (v >> 8) & 0xff;
+        b[s * per + 2 + c * 2] = v & 0xff;
+      }
+    }
+    return b;
+  }
+  check("npg 3 channel length 70", codec.npgChannels(70) === 3);
+  check("npg 6 channel length 130", codec.npgChannels(130) === 6);
+  check("npg odd lengths rejected", codec.npgChannels(69) === 0 && codec.npgChannels(20) === 0 && codec.npgChannels(0) === 0);
+  const vals = (s, c) => [0, 4095, 2048, 1000, 3000, 17][(s + c) % 6];
+  const f = codec.npgDecode(npgPacket(3, 0, vals), { last: null });
+  check("npg 10 frames of 3 channels", f.length === 10 && f.every((r) => r.length === 3));
+  check("npg values centred on 2048", f.every((r, s) => r.every((v, c) => v === vals(s, c) - 2048)), JSON.stringify(f[0]));
+  check("npg extremes", f[0][0] === -2048 && f[0][1] === 2047 && f[0][2] === 0);
+  const st = { last: null, missed: 0 };
+  codec.npgDecode(npgPacket(3, 250, vals), st);           // counters 250..3 (wraps)
+  codec.npgDecode(npgPacket(3, 4, vals), st);             // follows on, no gap
+  check("npg counter wrap is not a gap", st.missed === 0, "missed " + st.missed);
+  codec.npgDecode(npgPacket(3, 20, vals), st);            // 14..19 lost
+  check("npg gap of 6 samples counted", st.missed === 6, "missed " + st.missed);
+  const bad = { last: null };
+  check("npg wrong length gives no frames", codec.npgDecode(new Uint8Array(33), bad).length === 0 && bad.bad === 1);
+  const f6 = codec.npgDecode(npgPacket(6, 0, (s, c) => 2048 + c * 100 + s), null);
+  check("npg 6 channels", f6.length === 10 && f6[9][5] === 509, JSON.stringify(f6[9]));
+}
+
 console.log(pass + " passed, " + fail + " failed");
 process.exit(fail ? 1 : 0);
